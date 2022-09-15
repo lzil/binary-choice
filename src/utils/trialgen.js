@@ -28,7 +28,7 @@ function getRewards(values) {
   for (let i = 0; i < len; ++i) indices[i] = i;
   indices.sort(function (a, b) { return values[a] < values[b] ? -1 : values[a] > values[b] ? 1 : 0; });
   let rewards = new Array(len)
-  for (let i = 0; i < len; ++i) rewards[indices[i]] = i;
+  for (let i = 0; i < len; ++i) rewards[indices[i]] = i+1;
   // console.log(values, rewards)
   return rewards
 }
