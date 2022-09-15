@@ -37,7 +37,7 @@
   base = "."
   publish = "public/"
   command = "npm run dev"
-  functions = "netlify_functions/"
+  # functions = "netlify_functions/"
 
 [build.environment]
   TZ='America/New_York'
