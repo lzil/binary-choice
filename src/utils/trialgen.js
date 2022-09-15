@@ -61,7 +61,7 @@ export default function generateTrials(params, is_debug = false) {
       trial.type = 'probe'
       // trial.difficulty = 0
       trial.values = Array(n_targets).fill(0.25 + 0.5 * Math.random())
-      trial.rewards = shuffleArray([...Array(n_targets).keys()])
+      trial.rewards = shuffleArray([...Array(n_targets).keys()]).map(i => i+1)
     } else {
       let values = []
       for (let j = 0; j < n_targets; j++) {

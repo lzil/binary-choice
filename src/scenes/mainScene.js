@@ -268,7 +268,7 @@ export default class MainScene extends Phaser.Scene {
     let trial_params = {
       n_trials: 50,
       difficulty: 2,
-      probe_prob: 1/4,
+      probe_prob: 1/3,
       n_targets: 3
     }
     this.trials = generateTrials(trial_params)
@@ -383,9 +383,9 @@ export default class MainScene extends Phaser.Scene {
       this.instructions_idx = 1
       idx_count = 7
     } else if (mode === 2) {
+      this.instructions_previous.setVisible(false)
       group = this.instructions_group_2
       group.getChildren()[0].setVisible(true)
-      // this.instructions_idx = 1
       idx_count = 1
     } else if (mode === 3) {
       group = this.instructions_group_3
