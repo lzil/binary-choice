@@ -1,14 +1,10 @@
 import { TypingText } from '../objects/typingtext'
 import { Enum } from '../utils/enum'
-// import BasicExample from '../objects/examples'
-// import merge_data from '../utils/merge'
 import { clamp } from '../utils/clamp'
 import { randint, randchoice } from '../utils/rand'
-// import signedAngleDeg from '../utils/angulardist'
 // import { mad, median } from '../utils/medians'
 import generateTrials from '../utils/trialgen'
 // import make_thick_arc from '../utils/arc'
-// import { Staircase } from '../utils/staircase'
 
 const WHITE = 0xffffff
 const GREEN = 0x39ff14 // actually move to the target
@@ -48,9 +44,9 @@ const states = Enum([
 
 const Err = {
   none: 0,
-  reached_away: 1,
-  late_start: 2,
-  too_slow: 4,
+  too_far: 1,
+  too_slow_target: 2,
+  too_slow_reach: 4,
   wiggly_reach: 8,
   returned_to_center: 16
 }
@@ -79,6 +75,7 @@ export default class MainScene extends Phaser.Scene {
 
   preload() {
     this.load.image('next', 'assets/next.png')
+    this.load.image('next_debug', 'assets/next_debug.png')
     this.load.image('previous', 'assets/previous.png')
   }
 
@@ -90,6 +87,8 @@ export default class MainScene extends Phaser.Scene {
     this.cameras.main.setBounds(-config.width / 2, -config.height / 2, config.width, config.height)
     let height = config.height
     let hd2 = height / 2
+    this.hd2 = config.height/2
+    this.wd2 = config.width/2
     this.trial_counter = 0
     this.entering = true
     this.state = states.INSTRUCT
@@ -103,25 +102,25 @@ export default class MainScene extends Phaser.Scene {
     // start with some practice
     this.instruct_mode = 1
     // DEBUG ONLY
-    this.debug_next = this.add.image(400, -450, 'next')
+    this.arrow_next_debug = this.add.image(400, -450, 'next_debug')
     .setScale(.2)
     .setInteractive()
     .setAlpha(0.7)
     .on('pointerdown', () => {
       if (this.state = states.INSTRUCT) {
         // this.instruct_mode = 2
-        this.instructions_next.setVisible(false).removeAllListeners()
+        this.arrow_next.setVisible(false).removeAllListeners()
         this.instructions_title_group.setVisible(false)
         this.instructions_group_1.setVisible(false)
-        this.debug_next.setVisible(false).removeAllListeners()
+        this.arrow_next_debug.setVisible(false).removeAllListeners()
         this.trial_success_count = 2
         this.next_trial()
         return
       }
     }).on('pointerover', () => {
-      this.debug_next.setAlpha(1)
+      this.arrow_next_debug.setAlpha(1)
     }).on('pointerout', () => {
-      this.debug_next.setAlpha(0.7)
+      this.arrow_next_debug.setAlpha(0.7)
     }).setVisible(false)
 
     this.origin_obj = this.add.circle(0, CURSOR_START_Y, 15, WHITE).setVisible(false)
@@ -136,17 +135,17 @@ export default class MainScene extends Phaser.Scene {
       align: 'left'
     }))
 
-    this.instructions_next = this.add.image(400, 450, 'next')
+    this.arrow_next = this.add.image(400, 450, 'next')
       .setScale(.2)
       .setAlpha(.7)
-    this.instructions_previous = this.add.image(-450, 450, 'previous')
+    this.arrow_back = this.add.image(-450, 450, 'previous')
       .setScale(.2)
       .setAlpha(.7)
       .setInteractive()
       .on('pointerover', () => {
-        this.instructions_previous.setAlpha(1)
+        this.arrow_back.setAlpha(1)
       }).on('pointerout', () => {
-        this.instructions_previous.setAlpha(0.7)
+        this.arrow_back.setAlpha(0.7)
       })
       .setVisible(false)
       .on('pointerdown', () => {
@@ -155,7 +154,7 @@ export default class MainScene extends Phaser.Scene {
         this.instructions_holdwhite.setVisible(false)
         this.instructions_moveup.setVisible(false)
         this.instructions_hitred.setVisible(false)
-        this.instructions_previous.setVisible(false)
+        this.arrow_back.setVisible(false)
         this.reset_targets()
         this.origin_obj.setVisible(false)
 
@@ -172,8 +171,8 @@ export default class MainScene extends Phaser.Scene {
     this.instructions_group_1 = this.add.group()
     this.instructions_group_1.add(this.add.text(-500, -350,
       'In this game, your goal is to collect as many points as possible.\n\nThe more points you collect, the greater your bonus.',
-      instructions_font_params))
-    this.instructions_group_1.add(this.add.rectangle(-450, -200, 100, 10, WHITE))
+      instructions_font_params).setVisible(false))
+    this.instructions_group_1.add(this.add.rectangle(-450, -200, 100, 10, WHITE).setVisible(false))
     this.instructions_group_1.add(this.add.rexBBCodeText(-500, -160,
       'Start a trial by moving your mouse to a [b]white[/b] circle at the\nbottom of the screen.',
       instructions_font_params).setVisible(false))
@@ -223,15 +222,6 @@ export default class MainScene extends Phaser.Scene {
     this.instructions_group_2.add(this.add.text(-500, -60,
       'Once you are ready, click the arrow to begin.',
       instructions_font_params).setVisible(false))
-    // this.instructions_group_2.add(this.add.text(-500, 20,
-    //   'Remember: in a trial, the target values do not change;\nonly what you see changes!',
-    //   instructions_font_params).setVisible(false))
-    // this.instructions_group_2.add(this.add.rectangle(-450, 130, 100, 10, WHITE).setVisible(false))
-    // this.instructions_group_2.add(this.add.text(-500, 170,
-    //   'Let\'s try some more practice rounds.',
-    //   instructions_font_params).setVisible(false))
-    // this.instructions_group_2.setVisible(false)
-
     this.reward_txt = this.add.
       text(0, 0, 'Click the mouse button to continue.', {
         fontFamily: 'Verdana',
@@ -273,39 +263,6 @@ export default class MainScene extends Phaser.Scene {
     }
     this.trials = generateTrials(trial_params)
 
-
-    // this.q1 = this.add.text(0, hd2 / 3, `Which side did the cursor go toward,\n left (${rk['side']['left']}) or right (${rk['side']['right']})?`, {
-    //   fontFamily: 'Verdana',
-    //   fontStyle: 'bold',
-    //   fontSize: 50,
-    //   color: '#ffffff',
-    //   align: 'center',
-    //   stroke: '#444444',
-    //   strokeThickness: 4
-    // }).
-    //   setOrigin(0.5, 0.5).setVisible(false)
-
-    // big fullscreen quad in front of game, but behind text instructions
-    // this.darkener = this.add.rectangle(0, 0, height, height, 0x000000).setAlpha(1)
-
-    // noise arc
-    // this.textures.generate('noise', { data: noise_tex, pixelWidth: 3, pixelHeight: 3 })
-    // noise is the thing we draw
-    // to "randomize", do a setPosition with two random ints
-    // then rotate to some random PI*n/2
-    // this.noise = this.add.image(0, 0, 'noise').setVisible(false)
-    // let data = make_thick_arc(
-    //   Math.PI + Math.PI / 3,
-    //   Math.PI * 2 - Math.PI / 3,
-    //   200,
-    //   CENTER_SIZE_RADIUS * 2 + 5,
-    //   TARGET_DISTANCE * 2 - TARGET_SIZE_RADIUS * 2
-    // )
-
-    // let mask = this.add.polygon(0, 0, data, 0xffffff).setVisible(false).setDisplayOrigin(0, 0)
-    // this.noise.mask = new Phaser.Display.Masks.BitmapMask(this, mask)
-
-    this.debug_txt = this.add.text(-hd2, -hd2, '')
     this.progress = this.add.text(hd2, -hd2, '').setOrigin(1, 0)
     // this.tmp_counter = 1
     this.total_len = countTrials(this.trials)
@@ -363,40 +320,33 @@ export default class MainScene extends Phaser.Scene {
 
   }
 
-  show_instructions(mode) {
+  show_instructions(mode, show_all=false) {
     this.instructions_title_group.setVisible(true)
-    this.instructions_next.setVisible(true)
+    this.arrow_back.setVisible(false)
+    this.arrow_next.setVisible(true)
       .setInteractive()
       .setAlpha(0.7)
       .on('pointerover', () => {
-        this.instructions_next.setAlpha(1)
+        this.arrow_next.setAlpha(1)
       }).on('pointerout', () => {
-        this.instructions_next.setAlpha(0.7)
+        this.arrow_next.setAlpha(0.7)
       })
     this.instructions_idx = 0
     let group;
-    let idx_count;
     if (mode === 1) {
-      group = this.instructions_group_1
-      group.getChildren()[0].setVisible(true)
-      group.getChildren()[1].setVisible(true)
       this.instructions_idx = 1
-      idx_count = 7
+      group = this.instructions_group_1
+      group.getChildren()[1].setVisible(true)
     } else if (mode === 2) {
-      this.instructions_previous.setVisible(false)
       group = this.instructions_group_2
-      group.getChildren()[0].setVisible(true)
-      idx_count = 1
-    } else if (mode === 3) {
-      group = this.instructions_group_3
-      idx_count = 3
     }
+    let idx_count = group.getLength() - 1
     group.getChildren()[0].setVisible(true)
-    this.instructions_next.on('pointerdown', () => {
-      if (this.instructions_idx > idx_count) {
-        this.instructions_next.setVisible(false).removeAllListeners()
+    this.arrow_next.on('pointerdown', () => {
+      if (this.instructions_idx >= idx_count) {
+        this.arrow_next.setVisible(false).removeAllListeners()
         this.instructions_title_group.setVisible(false)
-        group.setVisible(false)
+        group.toggleVisible()
         this.trial_success_count = 0
         this.cur_trial_ix = -1
         this.next_trial()
@@ -416,24 +366,6 @@ export default class MainScene extends Phaser.Scene {
         console.log("Entering INSTRUCT")
         this.reset_screen()
         this.show_instructions(this.instruct_mode)
-        // this.instructions_idx = 0
-        // this.hold_waiting = false
-        // this.update_instructions()
-        // show the right instruction text, wait until typing complete
-        // and response made
-        // this.noise.visible = false
-        // this.instructions.visible = true
-        // this.darkener.visible = true
-        // let tt = 'instruct_basic'
-        // this.instructions.start(instruct_txts[tt], this.typing_speed)
-        // if (tt === 'instruct_basic') {
-        //   // this.examples.basic.visible = true
-        //   // this.examples.basic.play()
-        // } else if (tt === 'instruct_mask' || tt === 'instruct_probe') {
-        //   // this.examples.mask.visible = true
-        //   // this.examples.mask.play()
-        // }
-        
         
       }
 
@@ -461,21 +393,25 @@ export default class MainScene extends Phaser.Scene {
         // }
         if (this.instruct_mode === 1) {
           this.instructions_holdwhite.setVisible(true)
-          this.instructions_previous.setVisible(true)
+          this.arrow_back.setVisible(true)
         }
-        // check to see if cursor is inside start circle
-        this.origin_obj.setInteractive()
-          .on('pointerover', () => {
-            this.hold_counter = 0;
-            this.hold_waiting = true;
-            console.log('over')
-          })
-          .on('pointerleave', () => {
-            this.hold_counter = 0;
-            this.hold_waiting = false;
-          })
         
       }
+
+      // check if cursor inside start circle
+      let mouse_in_origin = this.origin.contains(
+        this.input.mousePointer.x - this.wd2,
+        this.input.mousePointer.y - this.hd2)
+      if (mouse_in_origin && !this.hold_waiting) {
+          this.hold_counter = 0;
+          this.hold_waiting = true;
+          console.log('over')
+      } else if (!mouse_in_origin && this.hold_waiting) {
+        this.hold_counter = 0;
+        this.hold_waiting = false;
+        console.log('leave')
+      }
+
       if (this.hold_waiting) {
         this.hold_counter++
         if (this.hold_counter > this.hold_val) {
@@ -535,7 +471,7 @@ export default class MainScene extends Phaser.Scene {
             if (this.trial_time > TIME_LIMIT) {
               // too slow
               this.reward = 0
-              this.trial_error = Err.too_slow
+              this.trial_error = Err.too_slow_reach
             } else {
               this.target_outlines[i].setVisible(true)
               this.reward = this.current_trial.rewards[i]
@@ -569,8 +505,8 @@ export default class MainScene extends Phaser.Scene {
       // check if cursor is in target
       for (let i = 0; i < this.target_objs.length; i++) {
         let target = this.target_objs[i]
-        let pointerx = this.input.mousePointer.x - this.game.config.width/2
-        let pointery = this.input.mousePointer.y - this.game.config.height/2
+        let pointerx = this.input.mousePointer.x - this.wd2/2
+        let pointery = this.input.mousePointer.y - this.hd2/2
         let target_dist = dist(target, {x: pointerx, y: pointery})
 
         // show targets
@@ -623,7 +559,7 @@ export default class MainScene extends Phaser.Scene {
           }
           this.reward_txt.setText(reward_txt)
           this.reward_txt.setVisible(true)
-        } else if (this.trial_error === Err.too_slow) {
+        } else if (this.trial_error === Err.too_slow_reach) {
           this.reward_txt.setText('Too slow!')
           this.reward_txt.setVisible(true)
         }
