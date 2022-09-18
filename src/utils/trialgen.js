@@ -57,6 +57,7 @@ export default function generateTrials(params, is_debug = false) {
   // let proto = Array(5).fill(probe_trial_types).flat()
   for (let i = 0; i < n_trials; i++) {
     let trial = {ix: i}
+    trial.difficulty = params.difficulty
     if (Math.random() < params.probe_prob) {
       trial.type = 'probe'
       // trial.difficulty = 0
@@ -65,10 +66,17 @@ export default function generateTrials(params, is_debug = false) {
     } else {
       let values = []
       for (let j = 0; j < n_targets; j++) {
-        values.push(Math.random())
+        if (params.difficulty === 0) {
+          values.push(Math.random())
+        } else {
+          values.push(Math.random() / params.difficulty)
+        }
       }
       trial.type = 'normal'
-      // trial.difficulty = params.difficulty
+      if (params.difficulty === 0 && (Math.max(values) - Math.min(values) < 0.5)) {
+        // too hard, repeat and make another one
+        i--
+      }
       trial.values = values
       trial.rewards = getRewards(values)
     }
