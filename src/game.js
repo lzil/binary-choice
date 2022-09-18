@@ -11,7 +11,10 @@ import UAParser from 'ua-parser-js'
 import BBCodeTextPlugin from 'phaser3-rex-plugins/plugins/bbcodetext-plugin.js'
 import TextTypingPlugin from 'phaser3-rex-plugins/plugins/texttyping-plugin.js'
 
-let small_dim = window.screen.height // could fix to 1000px, but this way things will look crisper
+let height = window.screen.height
+let width = height * 1.5
+
+
 const phaser_config = {
   type: Phaser.AUTO,
   backgroundColor: '#000000',
@@ -19,8 +22,8 @@ const phaser_config = {
     parent: 'phaser-game',
     mode: Phaser.Scale.FIT,
     // autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: small_dim,
-    height: small_dim
+    width: width,
+    height: height
   },
   audio: {
     noAudio: true

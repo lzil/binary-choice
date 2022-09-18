@@ -16,7 +16,7 @@ const LIGHTGRAY = Phaser.Display.Color.GetColor(150, 150, 150)
 const CYAN = Phaser.Display.Color.GetColor(100, 150, 250)
 const SALMON = Phaser.Display.Color.GetColor(250, 100, 100)
 
-const TARGET_SIZE_RADIUS = 40
+const TARGET_SIZE_RADIUS = 60
 // const CURSOR_SIZE_RADIUS = 5
 const CENTER_SIZE_RADIUS = 15
 const MOVE_THRESHOLD = 4
@@ -24,7 +24,9 @@ const MOVE_THRESHOLD = 4
 const TARGET_DISTANCE = 800 // *hopefully* they have 300px available?
 const TARGET_REF_ANGLE = 270 // degrees, and should be pointed straight up
 const TARGET_DIF = 30
-const TIME_LIMIT = 600
+const TIME_LIMIT = 800
+
+const TARGET_SHOW_DISTANCE = 770
 
 const CURSOR_START_Y = 400
 
@@ -173,6 +175,7 @@ export default class MainScene extends Phaser.Scene {
     }
 
     // FIRST INSTRUCTIONS
+    this.instructions_shown = false
     this.instructions_group_1 = this.add.group()
     this.instructions_group_1.add(this.add.text(-500, -350,
       'In this game, your goal is to collect as many points as possible.\n\nThe more points you collect, the greater your bonus.',
@@ -192,7 +195,7 @@ export default class MainScene extends Phaser.Scene {
       instructions_font_params).setVisible(false))
     this.instructions_group_1.add(this.add.rectangle(-450, 210, 100, 10, WHITE).setVisible(false))
     this.instructions_group_1.add(this.add.text(-500, 260,
-      'Quickly move to a target to select it - if you are too slow,\nyou get no points!',
+      'Quickly and accurately move to a target to select it - \nif you are too slow or you reach too far, you get no points!',
       instructions_font_params).setVisible(false))
     this.instructions_group_1.add(this.add.text(-500, 380,
       'Let\'s start with some practice rounds.',
@@ -239,8 +242,8 @@ export default class MainScene extends Phaser.Scene {
 
     // TARGETS
     let n_targets_total = 3
-    let deg_min = -30
-    let deg_max = 30
+    let deg_min = -45
+    let deg_max = 45
     let deg_dif = (deg_max - deg_min) / (n_targets_total - 1)
     let degs = []
     for (let i = 0; i < n_targets_total; i++) {
@@ -268,7 +271,8 @@ export default class MainScene extends Phaser.Scene {
     }
     this.trials = generateTrials(trial_params)
 
-    this.progress = this.add.text(hd2, -hd2, '').setOrigin(1, 0)
+    this.points_count = 0
+    this.points_txt = this.add.text(this.wd2 - 100, 100 -this.hd2, '', {fontSize: 30}).setOrigin(1, 0)
     // this.tmp_counter = 1
     this.total_len = countTrials(this.trials)
     // examples
@@ -338,20 +342,25 @@ export default class MainScene extends Phaser.Scene {
       })
     this.instructions_idx = 0
     let group;
+    
     if (mode === 1) {
-      this.instructions_idx = 1
       group = this.instructions_group_1
+      this.instructions_idx = 1
       group.getChildren()[1].setVisible(true)
     } else if (mode === 2) {
       group = this.instructions_group_2
     }
     let idx_count = group.getLength() - 1
     group.getChildren()[0].setVisible(true)
+    if (show_all) {
+      this.instructions_idx = idx_count
+      group.setVisible(true)
+    }
     this.arrow_next.on('pointerdown', () => {
       if (this.instructions_idx >= idx_count) {
         this.arrow_next.setVisible(false).removeAllListeners()
         this.instructions_title_group.setVisible(false)
-        group.toggleVisible()
+        group.setVisible(false)
         this.trial_success_count = 0
         this.cur_trial_ix = -1
         this.next_trial()
@@ -370,7 +379,7 @@ export default class MainScene extends Phaser.Scene {
         this.entering = false
         console.log("Entering INSTRUCT")
         this.reset_screen()
-        this.show_instructions(this.instruct_mode)
+        this.show_instructions(this.instruct_mode, this.instructions_shown)
         
       }
 
@@ -379,6 +388,7 @@ export default class MainScene extends Phaser.Scene {
       if (this.entering) {
         this.entering = false
         console.log("Entering PRETRIAL")
+        this.instructions_shown = true
         // how long you have to be inside circle to start trial
         this.hold_val = randint(50, 100)
         this.reset_targets()
@@ -436,7 +446,7 @@ export default class MainScene extends Phaser.Scene {
           this.target_outlines[i].setVisible(false)
         }
         console.log(current_trial.type)
-        this.start_time = this.game.loop.now
+        // this.start_time = this.game.loop.now
         // this.last_frame_time = this.game.loop.now
         // this.dropped_frame_count = 0
         // this.dts = []
@@ -465,15 +475,10 @@ export default class MainScene extends Phaser.Scene {
             this.selection = i
             this.value = this.current_trial.values[i]
 
-            if (this.trial_time > TIME_LIMIT) {
-              // too slow
-              this.reward = 0
-              this.trial_error = Err.too_slow_reach
-            } else {
-              this.target_outlines[i].setVisible(true)
-              this.reward = this.current_trial.rewards[i]
-              this.trial_success_count++
-              this.trial_error = Err.none
+            this.target_outlines[i].setVisible(true)
+            this.reward = this.current_trial.rewards[i]
+            this.trial_success_count++
+            this.trial_error = Err.none
               
               // this.target_outlines[i].setStrokeStyle(5, BRIGHTRED)
               // if (current_trial.ask_questions) {
@@ -482,7 +487,6 @@ export default class MainScene extends Phaser.Scene {
               //   this.resp_queue.splice(0, 0, {side: 'x', rt: 0})
               //   this.state = states.POSTTRIAL
               // }
-            }
             
             this.state = states.POSTTRIAL
           })
@@ -507,36 +511,50 @@ export default class MainScene extends Phaser.Scene {
       // check if cursor is past target radius
       let pdist = Phaser.Math.Distance.Between(pointerx, pointery, this.origin.x, this.origin.y)
       // console.log(pointerx, this.origin.x, pointery, this.origin.y)
+
+      // too far
       if (pdist >= TARGET_DISTANCE) {
         this.trial_error = Err.too_far
         this.reward = 0
         this.state = states.POSTTRIAL
       }
 
-
-      // check if cursor is in target
+      // check if cursor is closer to targets
       for (let i = 0; i < this.target_objs.length; i++) {
         let target = this.target_objs[i]
-        let target_dist = dist(target, {x: pointerx, y: pointery})
+        let this_target_dist = dist(target, {x: pointerx, y: pointery})
 
         // show targets
-        if ((!this.targets_visible) && (target_dist < 650)) {
+        if ((!this.targets_visible) && (this_target_dist < TARGET_SHOW_DISTANCE)) {
+          console.log('show targets')
+          this.start_time = this.game.loop.now
           for (let j = 0; j < this.target_objs.length; j++) {
             this.target_objs[j].setVisible(true)
-            this.target_show_time = this.game.loop.now
+            // setting target colors
+            let value_coef = 2 * (this.current_trial.values[j] - 0.5)
+            let red_shade = 175 + 75 * value_coef
+            let red_rgb_color = Phaser.Display.Color.GetColor(red_shade, 50, 50)
+            this.target_objs[j].setFillStyle(red_rgb_color)
           }
           this.targets_visible = true
+          this.target_show_time = this.game.loop.now
           // on practice trials, show instructions
           if (this.instruct_mode === 1) {
             this.instructions_moveup.setVisible(false)
             this.instructions_hitred.setVisible(true)
           }
         }
+      }
 
-        let value_coef = 2 * (this.current_trial.values[i] - 0.5)
-        let red_shade = 175 + 75 * value_coef
-        let red_rgb_color = Phaser.Display.Color.GetColor(red_shade, 50, 50)
-        target.setFillStyle(red_rgb_color)
+      // check if we're overtime
+      if (this.targets_visible) {
+        let cur_time = this.game.loop.now - this.target_show_time
+        if (cur_time > TIME_LIMIT) {
+          // too slow
+          this.reward = 0
+          this.trial_error = Err.too_slow_reach
+          this.state = states.POSTTRIAL
+        }
       }
 
       break
@@ -568,6 +586,11 @@ export default class MainScene extends Phaser.Scene {
         this.trial_time = this.end_time - this.target_show_time
         console.log('time', this.trial_time)
 
+        
+        if (this.instruct_mode === 0) {
+          this.points_count += this.reward
+          this.points_txt.setText('Points: ' + this.points_count)
+        }
         if (this.trial_error === Err.none) {
           let reward_txt;
           if (this.reward === 1) {
@@ -582,7 +605,7 @@ export default class MainScene extends Phaser.Scene {
           this.reward_txt.setVisible(true)
         } else if (this.trial_error === Err.too_far) {
           this.reset_targets()
-          this.reward_txt.setText('You reached too far!')
+          this.reward_txt.setText('Aim for one of the targets!')
           this.reward_txt.setVisible(true)
         }
         
