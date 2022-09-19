@@ -21,14 +21,14 @@ const TARGET_SIZE_RADIUS = 60
 const CENTER_SIZE_RADIUS = 15
 const MOVE_THRESHOLD = 4
 
-const TARGET_DISTANCE = 800 // *hopefully* they have 300px available?
+const TARGET_DISTANCE = 850 // *hopefully* they have 300px available?
 const TARGET_REF_ANGLE = 270 // degrees, and should be pointed straight up
 const TARGET_DIF = 30
 const TIME_LIMIT = 800
 
-const TARGET_SHOW_DISTANCE = 770
+const TARGET_SHOW_DISTANCE = 830
 
-const CURSOR_START_Y = 400
+const CURSOR_START_Y = 450
 
 const PI = Math.PI
 
@@ -201,7 +201,7 @@ export default class MainScene extends Phaser.Scene {
       'Let\'s start with some practice rounds.',
       instructions_font_params).setVisible(false))
 
-    this.instructions_holdwhite = this.add.text(50, 380, '<<   Move your mouse here', instructions_font_params).setVisible(false)
+    this.instructions_holdwhite = this.add.text(50, 430, '<<   Move your mouse here', instructions_font_params).setVisible(false)
     this.instructions_moveup = this.add.text(100, 300, 'Move your mouse upwards...', instructions_font_params).setVisible(false)
     this.instructions_hitred = this.add.text(0, -500, 'Hit one of these targets!', {
       fontFamily: 'Verdana',
@@ -593,20 +593,30 @@ export default class MainScene extends Phaser.Scene {
         }
         if (this.trial_error === Err.none) {
           let reward_txt;
-          if (this.reward === 1) {
-            reward_txt = "You received 1 point!"
-          } else {
-            reward_txt = `You received ${this.reward} points!`
+          if (this.instruct_mode === 1) {
+            if (this.reward === 1) {
+              reward_txt = "This target is worth 1 point!"
+            } else {
+              reward_txt = `This target is worth ${this.reward} points!`
+            }
+          } else  {
+            if (this.reward === 1) {
+              reward_txt = "You received 1 point!"
+            } else {
+              reward_txt = `You received ${this.reward} points!`
+            }
           }
           this.reward_txt.setText(reward_txt)
           this.reward_txt.setVisible(true)
         } else if (this.trial_error === Err.too_slow_reach) {
           this.reward_txt.setText('Too slow!')
           this.reward_txt.setVisible(true)
+          this.trial_success_count = 0
         } else if (this.trial_error === Err.too_far) {
           this.reset_targets()
           this.reward_txt.setText('Aim for one of the targets!')
           this.reward_txt.setVisible(true)
+          this.trial_success_count = 0
         }
         
         for (let i = 0; i < this.target_objs.length; i++) {
