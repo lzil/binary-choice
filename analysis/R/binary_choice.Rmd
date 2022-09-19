@@ -1,0 +1,68 @@
+---
+title: "Binary choice experiment"
+author: "Liang Zhou"
+date: "September 19, 2022"
+output:
+  bookdown::html_document2:
+    toc: true
+    toc_depth: 4
+    theme: cosmo
+    highlight: tango
+---
+
+# Load packages 
+
+```{r load-packages, message=F}
+library("Hmisc")
+library("magick")
+library("tidyjson")
+library("tidyverse")
+library("patchwork")
+library("ggrepel")
+library("knitr")
+library("grid")
+```
+
+```{r}
+theme_set(theme_classic())
+```
+
+# Load trajectories
+
+```{r}
+data_path = "../../"
+file.name = "all_data.json"
+df.tmp = read_json(file.path(data_path, file.name)) %>%
+  as.tbl_json %>% 
+  gather_array("ix") %>%
+  gather_object("trial_data") %>% 
+  append_values_string("value")
+
+df.trial_metadata = df.tmp %>% 
+  filter(!is.na(value)) %>% 
+  select(-document.id) %>% 
+  as_tibble() %>% 
+  rename(trial = ix) %>% 
+  pivot_wider(names_from = "trial_data", values_from = "value")
+  
+df.trial_pointerdata = df.tmp %>% 
+  filter(trial_data == "pointer_data") %>% 
+  select(-document.id, -trial_data, -value) %>% 
+  gather_object("value_type") %>% 
+  gather_array("step") %>% 
+  append_values_number("value") %>% 
+  as_tibble() %>% 
+  pivot_wider(names_from = "value_type", values_from = value)
+```
+
+```{r}
+df.plot = df.trial_pointerdata
+ggplot(df.plot, aes(x = x, y = y, color = factor(ix))) + 
+  scale_y_reverse() +
+    geom_point(alpha = .6)
+    # facet_wrap(~day, scales = "free_x")
+```
+
+
+
+
