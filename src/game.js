@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 // import Phaser from './phaser-custom'
-// import TitleScene from './scenes/titleScene'
+import CalibrationScene from './scenes/calibrationScene'
 import MainScene from './scenes/mainScene'
 import EndScene from './scenes/endScene'
 
@@ -29,7 +29,7 @@ const phaser_config = {
     noAudio: true
   },
   // scene: [TitleScene, MainScene, EndScene],
-  scene: [MainScene, EndScene],
+  scene: [CalibrationScene, MainScene, EndScene],
   plugins: {
     global: [
       {
@@ -91,10 +91,10 @@ window.addEventListener('load', () => {
 
 // once the data is successfully sent, null this out
 // need to log this too
-// export function onBeforeUnload(event) {
-//   // https://developer.mozilla.org/en-US/docs/Web/API/Window/beforeunload_event
-//   event.preventDefault()
-//   event.returnValue = ''
-//   return 'experiment not done yet.'
-// }
-// !DEBUG && window.addEventListener('beforeunload', onBeforeUnload)
+export function onBeforeUnload(event) {
+  // https://developer.mozilla.org/en-US/docs/Web/API/Window/beforeunload_event
+  event.preventDefault()
+  event.returnValue = ''
+  return 'experiment not done yet.'
+}
+!DEBUG && window.addEventListener('beforeunload', onBeforeUnload)

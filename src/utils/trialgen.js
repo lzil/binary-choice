@@ -88,7 +88,7 @@ export default function generateTrials(params, is_debug = false) {
         values.push(Math.random())
       }
       trial.type = 'normal'
-      if (params.difficulty === 0 && (Math.max(values) - Math.min(values) < 0.5)) {
+      if (params.difficulty === 0 && (Math.max(values) - Math.min(values) < 0.65)) {
         // too hard, repeat and make another one
         i--
       }
