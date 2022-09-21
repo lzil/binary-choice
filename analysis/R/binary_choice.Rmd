@@ -32,7 +32,7 @@ theme_set(theme_classic())
 ```{r}
 data_path = "../../"
 file.name = "all_data.json"
-df.tmp = read_json(file.path(data_path, file.name)) %>%
+df.tmp = read_json(file.path(data_path, file.name)) %>% 
   as.tbl_json %>% 
   gather_array("ix") %>%
   gather_object("trial_data") %>% 
@@ -44,18 +44,22 @@ df.trial_metadata = df.tmp %>%
   as_tibble() %>% 
   rename(trial = ix) %>% 
   pivot_wider(names_from = "trial_data", values_from = "value")
-  
+
 df.trial_pointerdata = df.tmp %>% 
-  filter(trial_data == "pointer_data") %>% 
-  select(-document.id, -trial_data, -value) %>% 
+  group_by(ix) %>%
+  filter(any(value[trial_data == "error"] == 0),
+         any(value[trial_data == "set"] == "main")) %>% 
+  ungroup() %>%
+  filter(trial_data == "pointer_data") %>%
+  as.tbl_json(json.column = "..JSON") %>% 
+  # select(-document.id, -trial_data, -value) %>% 
   gather_object("value_type") %>% 
   gather_array("step") %>% 
   append_values_number("value") %>% 
   as_tibble() %>% 
   pivot_wider(names_from = "value_type", values_from = value)
-```
 
-```{r}
+
 df.plot = df.trial_pointerdata
 ggplot(df.plot, aes(x = x, y = y, color = factor(ix))) + 
   scale_y_reverse() +

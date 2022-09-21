@@ -22,6 +22,10 @@ function shuffleArray(array) {
   return array
 }
 
+function argMax(array) {
+  return [].reduce.call(array, (m, c, i, arr) => c > arr[m] ? i : m, 0)
+}
+
 function getRewards(values) {
   let len = values.length;
   let indices = new Array(len);
@@ -31,6 +35,19 @@ function getRewards(values) {
   for (let i = 0; i < len; ++i) rewards[indices[i]] = i+1;
   // console.log(values, rewards)
   return rewards
+}
+
+function getUnbalancedRewards(values) {
+  let len = values.length
+  let rewards = new Array(len).fill(1)
+  rewards[argMax(values)] = 5
+  return rewards
+}
+
+function randint(min, max) {
+  min = Math.ceil(min)
+  max = Math.floor(max)
+  return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
 export default function generateTrials(params, is_debug = false) {
@@ -63,14 +80,12 @@ export default function generateTrials(params, is_debug = false) {
       // trial.difficulty = 0
       trial.values = Array(n_targets).fill(0.25 + 0.5 * Math.random())
       trial.rewards = shuffleArray([...Array(n_targets).keys()]).map(i => i+1)
+      // trial.rewards = Array(n_targets).fill(1)
+      // trial.rewards[randint(0,n_targets-1)] = 5
     } else {
       let values = []
       for (let j = 0; j < n_targets; j++) {
-        if (params.difficulty === 0) {
-          values.push(Math.random())
-        } else {
-          values.push(Math.random() / params.difficulty)
-        }
+        values.push(Math.random())
       }
       trial.type = 'normal'
       if (params.difficulty === 0 && (Math.max(values) - Math.min(values) < 0.5)) {
@@ -79,6 +94,7 @@ export default function generateTrials(params, is_debug = false) {
       }
       trial.values = values
       trial.rewards = getRewards(values)
+      // trial.rewards = getUnbalancedRewards(values)
     }
     
     trials.push(trial)

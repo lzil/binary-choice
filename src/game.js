@@ -2,7 +2,7 @@ import Phaser from 'phaser'
 // import Phaser from './phaser-custom'
 // import TitleScene from './scenes/titleScene'
 import MainScene from './scenes/mainScene'
-// import EndScene from './scenes/endScene'
+import EndScene from './scenes/endScene'
 
 import TestScene from './scenes/testScene'
 // import 'devtools-detect'
@@ -29,7 +29,7 @@ const phaser_config = {
     noAudio: true
   },
   // scene: [TitleScene, MainScene, EndScene],
-  scene: MainScene,
+  scene: [MainScene, EndScene],
   plugins: {
     global: [
       {
