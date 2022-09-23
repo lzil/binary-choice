@@ -64,7 +64,7 @@ export default class EndScene extends Phaser.Scene {
         // or if anything else, google redirect
         window.removeEventListener('beforeunload', onBeforeUnload)
         Promise.all(postData(alldata)).then((values) => {
-          window.location.href = mostly + '8E059F9A'
+          window.location.href = mostly + '7FDAF617'
         })
       } else {
         // is sona
