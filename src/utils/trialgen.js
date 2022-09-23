@@ -26,13 +26,23 @@ function argMax(array) {
   return [].reduce.call(array, (m, c, i, arr) => c > arr[m] ? i : m, 0)
 }
 
+
+const rewardsMap = {
+  0: 1,
+  1: 5,
+  2: 10
+}
+
 function getRewards(values) {
   let len = values.length;
   let indices = new Array(len);
   for (let i = 0; i < len; ++i) indices[i] = i;
   indices.sort(function (a, b) { return values[a] < values[b] ? -1 : values[a] > values[b] ? 1 : 0; });
   let rewards = new Array(len)
-  for (let i = 0; i < len; ++i) rewards[indices[i]] = i+1;
+  for (let i = 0; i < len; ++i) {
+    let val = indices[i]
+    rewards[val] = rewardsMap[i];
+  }
   // console.log(values, rewards)
   return rewards
 }
@@ -74,12 +84,22 @@ export default function generateTrials(params, is_debug = false) {
   // let proto = Array(5).fill(probe_trial_types).flat()
   for (let i = 0; i < n_trials; i++) {
     let trial = {ix: i}
+    trial.type = 'normal'
     trial.difficulty = params.difficulty
-    if (Math.random() < params.probe_prob) {
+
+    // decides whether trial is probe, normal, or easy
+    let trial_coin_toss = Math.random()
+    if (trial_coin_toss > 1 - params.easy_prob) {
+      trial.difficulty = 1
+      trial.type = 'easy'
+    }
+    if (trial_coin_toss < params.probe_prob) {
       trial.type = 'probe'
       // trial.difficulty = 0
-      trial.values = Array(n_targets).fill(0.25 + 0.5 * Math.random())
-      trial.rewards = shuffleArray([...Array(n_targets).keys()]).map(i => i+1)
+      let probe_value = Math.random()
+      trial.values = Array(n_targets).fill(0.25 + 0.5 * probe_value)
+      let reward_value = Math.round(probe_value * 2)
+      trial.rewards = Array(3).fill(rewardsMap[reward_value])
       // trial.rewards = Array(n_targets).fill(1)
       // trial.rewards[randint(0,n_targets-1)] = 5
     } else {
@@ -87,8 +107,7 @@ export default function generateTrials(params, is_debug = false) {
       for (let j = 0; j < n_targets; j++) {
         values.push(Math.random())
       }
-      trial.type = 'normal'
-      if (params.difficulty === 0 && (Math.max(values) - Math.min(values) < 0.65)) {
+      if (params.difficulty === 0 && (Math.max(values) - Math.min(values) < 0.5)) {
         // too hard, repeat and make another one
         i--
       }

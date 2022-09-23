@@ -7,3 +7,10 @@ node_modules/
 .netlify
 .Rproj.user
 .Rhistory
+
+all_data.json
+
+.env
+faunaquery.py
+
+.checklist

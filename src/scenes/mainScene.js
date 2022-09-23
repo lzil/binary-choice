@@ -4,10 +4,6 @@ import { clamp } from '../utils/clamp'
 import { randint, randchoice } from '../utils/rand'
 import generateTrials from '../utils/trialgen'
 
-// import make_thick_arc from '../utils/arc'
-
-// const fs = require('node:fs');
-
 
 const WHITE = 0xffffff
 const GREEN = 0x39ff14 // actually move to the target
@@ -19,7 +15,7 @@ const LIGHTGRAY = Phaser.Display.Color.GetColor(150, 150, 150)
 const CYAN = Phaser.Display.Color.GetColor(100, 150, 250)
 const SALMON = Phaser.Display.Color.GetColor(250, 100, 100)
 
-const TARGET_SIZE_RADIUS = 60
+const TARGET_SIZE_RADIUS = 75
 const ORIGIN_SIZE_RADIUS = 15
 const MOVE_THRESHOLD = 4
 
@@ -32,11 +28,13 @@ const PRACTICE_REACH_TIME_LIMIT = 1600
 const REACH_TIME_LIMIT = 800
 const CURSOR_START_Y = 450
 
-const TRIAL_DELAY = 1200
-const PRACTICE_TRIAL_PUNISH_DELAY = 200
-const TRIAL_PUNISH_DELAY = 2000
+const MED_TIME_MULTIPLIER = 1.5
 
-const PI = Math.PI
+const TRIAL_DELAY = 1000
+const PRACTICE_TRIAL_PUNISH_DELAY = 200
+const TRIAL_PUNISH_DELAY = 1500
+
+const TASK_POINT_GOAL = 1000
 
 const states = Enum([
   'INSTRUCT', // show text instructions (based on stage of task)
@@ -52,32 +50,14 @@ const Err = {
   too_far: 1,
   too_slow_move: 2,
   too_slow_reach: 4,
-  wiggly_reach: 8,
+  returned_reach: 8,
   returned_to_center: 16
 }
 
 export default class MainScene extends Phaser.Scene {
   constructor() {
     super({ key: 'MainScene' })
-    this._state = states.INSTRUCT
-    this.entering = true
-    this.all_trial_data = []
-
-    // variables to start off with
-    this.instruct_mode = 1
-    this.points_count = 0
-    this.instructions_shown = false
-
-    this.n_trials = 20
-    this.probe_prob = 2/3
-    this.distance_mode = true
-
-    let debug = true
-    if (debug) {
-      this.instruct_mode = 2
-      this.n_trials = 2
-      this.probe_prob = 0
-    }
+    this._state = states.INSTRUCT    
 
   }
 
@@ -85,6 +65,8 @@ export default class MainScene extends Phaser.Scene {
     this.load.image('next', 'assets/next_instructions.png')
     this.load.image('next_debug', 'assets/next_debug.png')
     this.load.image('previous', 'assets/previous_instructions.png')
+
+    this.load.image('finish', 'assets/ticket.png')
   }
 
   create(med_time) {
@@ -94,12 +76,37 @@ export default class MainScene extends Phaser.Scene {
     this.hd2 = config.height/2
     this.wd2 = config.width/2
     this.cameras.main.setBounds(-this.wd2, -this.hd2, this.wd2*2, this.hd2*2)
-    this.trial_counter = 0
+    
     this.state = states.INSTRUCT
-    this.is_debug = user_config.debug
+    this.entering = true
+    this.all_trial_data = []
 
+    // variables to start off with
+    this.trial_counter = 0
+    this.instruct_mode = 1
+    this.points_count = 0
+    this.selection_counts = Array(3).fill(1/3)
+    this.instructions_shown = false
+
+    this.n_trials = 1000
+    this.probe_prob = 1/2
+    this.easy_prob = 1/12
+    this.distance_mode = true
+    this.difficulty = 8
+
+    this.is_debug = user_config.is_debug
+    if (this.is_debug) {
+      this.instruct_mode = 2
+      this.n_trials = 50
+      this.probe_prob = 0
+      this.easy_prob = 0
+      this.difficulty = 8
+    }
+
+
+    // we need to replace REACH_TIME_LIMIT with some function of this
     this.med_time = med_time
-    console.log('wow', med_time)
+    const REACH_TIME_LIMIT_CALIBRATED = this.med_time * MED_TIME_MULTIPLIER
 
     // fancy "INSTRUCTIONS" title
     this.instructions_title_group = this.add.group()
@@ -110,6 +117,9 @@ export default class MainScene extends Phaser.Scene {
       fontSize: 50,
       align: 'left'
     }))
+
+    // secret finish button
+    this.finish = this.add.rectangle(this.wd2,this.hd2,50,50).setInteractive().on('pointerdown',()=>{this.scene.start('EndScene', this.all_trial_data)})
 
     // button to next set of instructions / next page
     this.arrow_next = this.add.image(400, 450, 'next')
@@ -149,26 +159,26 @@ export default class MainScene extends Phaser.Scene {
       // distance_mode instructions
       this.instructions_group_1 = this.add.group()
       this.instructions_group_1.add(this.add.text(-500, -350,
-        'In this game, your goal is to collect as many points as possible.\n\nThe more points you collect, the greater your bonus.',
+        'In this game, score points by moving your mouse to circular targets.',
         instructions_font_params).setVisible(false))
-      this.instructions_group_1.add(this.add.rectangle(-450, -200, 100, 10, WHITE).setVisible(false))
-      this.instructions_group_1.add(this.add.rexBBCodeText(-500, -160,
+      this.instructions_group_1.add(this.add.rectangle(-450, -260, 100, 10, WHITE).setVisible(false))
+      this.instructions_group_1.add(this.add.rexBBCodeText(-500, -210,
         'Start a trial by moving your mouse to a [b]white[/b] circle at the\nbottom of the screen.',
         instructions_font_params).setVisible(false))
-      this.instructions_group_1.add(this.add.rexBBCodeText(-500, -50,
-        'The [b]white[/b] circle will turn [b][color=#39ff14]green[/color][/b], and three [b][color=#FF3232]red-hued[/color][/b] targets will\nappear near the top of the screen. Each target has a point value\nthat changes every trial. ',
+      this.instructions_group_1.add(this.add.rexBBCodeText(-500, -100,
+        'The [b]white[/b] circle will turn [b][color=#39ff14]green[/color][/b], and three [b][color=#FF3232]red-hued[/color][/b] targets will\nappear near the top of the screen. Each target has a point value\nthat changes every trial. Targets are worth 1, 5, or 10 points.',
         instructions_font_params).setVisible(false))
-      this.instructions_group_1.add(this.add.rexBBCodeText(-500, 90,
-        'As you move your mouse closer to a target, it will get [b][color=#FF8888]brighter[/color][/b] or \n[b][color=#882222]duller[/color][/b] based on its value. Brighter targets usually have higher value.',
+      this.instructions_group_1.add(this.add.rexBBCodeText(-500, 40,
+        'As you move your mouse closer to a target, it may get [b][color=#FF8888]brighter[/color][/b] or \n[b][color=#882222]duller[/color][/b] based on its value. Brighter targets usually have higher value.',
         instructions_font_params).setVisible(false))
       // this.instructions_group_1.add(this.add.rexBBCodeText(-500, 130,
       //   '',
       //   instructions_font_params).setVisible(false))
-      this.instructions_group_1.add(this.add.rectangle(-450, 210, 100, 10, WHITE).setVisible(false))
-      this.instructions_group_1.add(this.add.text(-500, 260,
-        'Quickly and accurately move to a target to select it - \nif you are too slow or you reach too far, you get no points!',
+      this.instructions_group_1.add(this.add.rectangle(-450, 160, 100, 10, WHITE).setVisible(false))
+      this.instructions_group_1.add(this.add.text(-500, 210,
+        'Move to a target to select it and take your time, but watch out -\nif you reach too far or take too long, you get no points.',
         instructions_font_params).setVisible(false))
-      this.instructions_group_1.add(this.add.text(-500, 380,
+      this.instructions_group_1.add(this.add.text(-500, 330,
         'Let\'s start with some practice rounds.',
         instructions_font_params).setVisible(false))
     } else {
@@ -192,7 +202,7 @@ export default class MainScene extends Phaser.Scene {
         instructions_font_params).setVisible(false))
       this.instructions_group_1.add(this.add.rectangle(-450, 210, 100, 10, WHITE).setVisible(false))
       this.instructions_group_1.add(this.add.text(-500, 260,
-        'Quickly and accurately move to a target to select it - \nif you are too slow or you reach too far, you get no points!',
+        'Move to a target to select it and take your time, but watch out -\nif you reach too far or take too long, you get no points.',
         instructions_font_params).setVisible(false))
       this.instructions_group_1.add(this.add.text(-500, 380,
         'Let\'s start with some practice rounds.',
@@ -202,11 +212,13 @@ export default class MainScene extends Phaser.Scene {
     // instructions during practice rounds
     this.instructions_holdwhite = this.add.text(50, 430, '<<   Move your mouse here', instructions_font_params).setVisible(false)
     this.instructions_moveup = this.add.text(100, 300, 'Move your mouse upwards...', instructions_font_params).setVisible(false)
-    this.instructions_hitred = this.add.text(0, -500, 'Hit one of these targets!', {
+    this.instructions_hitred = this.add.text(0, -550, 'Hit one of these targets!', {
       fontFamily: 'Verdana',
       fontSize: 30,
       align: 'center'
     }).setVisible(false).setOrigin(0.5, 0.5)
+
+
     
 
     // practice round trials
@@ -215,6 +227,7 @@ export default class MainScene extends Phaser.Scene {
       distance_mode: this.distance_mode,
       difficulty: 0,
       probe_prob: 0,
+      easy_prob: 0,
       n_targets: 3
     }
     this.practice_trials_1 = generateTrials(trial_params_1)
@@ -223,13 +236,16 @@ export default class MainScene extends Phaser.Scene {
     // second page of instructions, before starting
     this.instructions_group_2 = this.add.group()
     this.instructions_group_2.add(this.add.text(-500, -350,
-      'Good job!\n\nNow, the actual game will be more difficult.',
+      'Good job!\n\nNow, the actual game will be more difficult. You will have\nless time to move, and the colors will look more similar.\nJust try your best!',
       instructions_font_params).setVisible(false))
-    this.instructions_group_2.add(this.add.text(-500, -100,
-      'You will have less time to make your movement, and\nthe colors will look more similar.\n\nJust try your best!',
+    this.instructions_group_2.add(this.add.rexBBCodeText(-500, -120,
+      '[b]One more hint[/b]: the more you select a certain target relative\nto the others, the less that target will likely be worth in\nfuture trials.',
       instructions_font_params).setVisible(false))
-    this.instructions_group_2.add(this.add.text(-500, 170,
-      'Once you are ready, click the arrow to begin.',
+    this.instructions_group_2.add(this.add.rexBBCodeText(-500, 30,
+      'The task will end once you reach [b]1000[/b] points.',
+      instructions_font_params).setVisible(false))
+    this.instructions_group_2.add(this.add.rexBBCodeText(-500, 150,
+      '[b]Once you are ready, click the arrow to begin.[/b]',
       instructions_font_params).setVisible(false))
 
     // text in the center displaying rewards and errors
@@ -272,52 +288,27 @@ export default class MainScene extends Phaser.Scene {
     }
 
     // actual trials for the experiment
+
+    // some easy trials
+    // let trial_params = {
+    //   n_trials: this.n_trials,
+    //   distance_mode: this.distance_mode,
+    //   difficulty: 0,
+    //   probe_prob: this.probe_prob,
+    //   n_targets: 3,
+    // }
+    // this.trials = generateTrials(trial_params)
+
+
     let trial_params = {
       n_trials: this.n_trials,
       distance_mode: this.distance_mode,
-      difficulty: 2,
+      difficulty: this.difficulty,
       probe_prob: this.probe_prob,
+      easy_prob: this.easy_prob,
       n_targets: 3,
     }
     this.trials = generateTrials(trial_params)
-
-    // this.tmp_counter = 1
-    // this.total_len = countTrials(this.trials)
-    // examples
-    // this.examples = {
-    //   // go + feedback
-    //   basic: new BasicExample(this, 0, 200, true, false, rk['side']['right']).setVisible(false),
-    //   mask: new BasicExample(this, 0, 200, true, true, rk['side']['right']).setVisible(false)
-    // }
-
-    // question responses
-    // this.resp_queue = []
-    // this.rt_ref = 0 //
-    // this.input.keyboard.on(`keydown-${rk['side']['left']}`, (evt) => {
-    //   this.resp_queue.push({side: 'l', rt: evt.timeStamp - this.rt_ref})
-    // })
-
-    // this.input.keyboard.on(`keydown-${rk['side']['right']}`, (evt) => {
-    //   this.resp_queue.push({side: 'r', rt: evt.timeStamp - this.rt_ref})
-    // })
-
-    // start the mouse at offset
-    // this.raw_x = CURSOR_RESTORE_X
-    // this.raw_y = CURSOR_RESTORE_Y
-    // this.next_trial()
-
-    // set up mouse callback (does all the heavy lifting)
-    // this.input.on('pointerdown', () => {
-    //   if (this.state !== states.END) {
-    //     // this.scale.startFullscreen()
-    //     this.time.delayedCall(300, () => {
-    //       this.input.mouse.requestPointerLock()
-    //     })
-    //   }
-    // })
-    // this.input.on('pointerlockchange', () => {
-    //   console.log('oh no, this does not work')
-    // })
 
   } // end create
 
@@ -394,6 +385,10 @@ export default class MainScene extends Phaser.Scene {
       if (this.entering) {
         this.entering = false
         console.log("Entering PRETRIAL")
+        console.log(this.cur_trial_ix, this.current_trial.type, this.current_trial.difficulty)
+        if (this.is_debug) {
+          console.log(this.current_trial.values)
+        }
         this.instructions_shown = true
         // how long you have to be inside circle to start trial
         this.hold_val = randint(50, 100)
@@ -402,16 +397,6 @@ export default class MainScene extends Phaser.Scene {
         this.reward_txt.setVisible(false)
         this.hold_waiting = false
         this.origin_obj.fillColor = WHITE
-        // this.t_ref = window.performance.now()
-        // draw mask, if needed
-        // this.noise.visible = this.current_trial.is_masked
-        // if (this.is_debug) {
-        //   let current_trial = this.current_trial
-        //   let txt = current_trial['trial_type']
-        //   txt += current_trial['trial_label'] ? ', ' + current_trial['trial_label'] + ', ' : ''
-        //   txt += current_trial['pos'] ? current_trial['pos'] : ''
-        //   this.debug_txt.text = txt
-        // }
         if (this.instruct_mode === 1) {
           this.instructions_holdwhite.setVisible(true)
           this.arrow_back.setVisible(true)
@@ -456,13 +441,10 @@ export default class MainScene extends Phaser.Scene {
       break
 
     case states.MOVING:
-      let current_trial = this.current_trial
       if (this.entering) {
         this.entering = false
         this.moving = false
         console.log("Entering MOVING")
-        console.log(current_trial.type)
-        console.log(current_trial.values)
 
         this.origin_obj.fillColor = GREEN
 
@@ -498,7 +480,26 @@ export default class MainScene extends Phaser.Scene {
             this.target_objs[i].setStrokeStyle(8, WHITE)
             this.selection = i
             this.value = this.current_trial.values[i]
-            this.reward = this.current_trial.rewards[i]
+            // if reward is 10, maybe make it not 10
+            let reward = this.current_trial.rewards[i]
+            this.reward = reward
+            if (this.instruct_mode == 0 && reward != 1) {
+              let selection_ratio = this.selection_counts[i] - 1/3
+              console.log('selection ratio:', selection_ratio)
+              if (selection_ratio > 0 && Math.random() < selection_ratio) {
+                if (reward == 5) {
+                  console.log('changing reward to 1')
+                  this.reward = 1
+                } else {
+                  console.log('changing reward to 5')
+                  this.reward = 5
+                }
+              }
+            }
+            if (this.instruct_mode == 0) {
+              this.selection_counts = this.selection_counts.map(x=>x*5/6)
+              this.selection_counts[i] += 1/6
+            }
             this.trial_success_count++
             this.trial_error = Err.none
             
@@ -535,6 +536,7 @@ export default class MainScene extends Phaser.Scene {
         let mouse_in_origin = this.origin.contains(pointerx, pointery)
         if (!mouse_in_origin) {
           this.moving = true
+          this.last_pdist = pdist
           this.move_time = cur_time
           this.trial_data['move_time'] = cur_trial_time
           console.log(cur_trial_time, 'move_time')
@@ -565,12 +567,20 @@ export default class MainScene extends Phaser.Scene {
       if (this.moving) {
         let reaching_trial_time = cur_time - this.move_time
 
+        // check that cursor is going away
+        if (pdist < this.last_pdist - 5) {
+          this.trial_error = Err.returned_reach
+          this.state = states.POSTTRIAL
+        }
+        this.last_pdist = pdist
+
         // are we past the reaching time limit?
         let time_lim = REACH_TIME_LIMIT
         if (this.instruct_mode > 0) {
           time_lim = PRACTICE_REACH_TIME_LIMIT
         }
         if (reaching_trial_time > time_lim) {
+          console.log('hit the limit!', reaching_trial_time)
           this.trial_error = Err.too_slow_reach
           this.state = states.POSTTRIAL
         }
@@ -599,6 +609,7 @@ export default class MainScene extends Phaser.Scene {
         // check if we're overtime (to reach), before targets are shown
         if (cur_trial_time > MOVE_TIME_LIMIT) {
           this.trial_error = Err.too_slow_move
+          this.move_time = -1
           this.state = states.POSTTRIAL
         }
 
@@ -632,13 +643,14 @@ export default class MainScene extends Phaser.Scene {
         this.origin_obj.fillColor = WHITE
         this.end_time = this.game.loop.now
         if (this.distance_mode) {
+          // gives incorrect results if we didn't move this trial
           this.trial_time = this.end_time - this.move_time
         } else {
           this.trial_time = this.end_time - this.target_show_time
         }
         this.trial_data['end_time'] = this.end_time - this.start_time
         this.trial_data['trial_time'] = this.trial_time
-        console.log(this.trial_time, 'end_time')
+        console.log(this.trial_time, 'trial time')
 
         this.trial_data['pointer_data'] = this.pointer_data
         // console.log(this.trial_data)
@@ -663,7 +675,9 @@ export default class MainScene extends Phaser.Scene {
           this.reward_txt.setText(reward_txt)
         } else {
           // some error happened
-          this.trial_success_count = 0
+          if (this.instruct_mode == 1) {
+            this.trial_success_count = 0
+          }
           this.reward = 0
           this.selection = -1
           this.value = 0
@@ -671,7 +685,7 @@ export default class MainScene extends Phaser.Scene {
             this.reward_txt.setText('Please start your movement faster.')
           } else if (this.trial_error === Err.too_slow_reach) {
             this.reward_txt.setText('Too slow!')
-          } else if (this.trial_error === Err.too_far) {
+          } else if (this.trial_error === Err.too_far || this.trial_error === Err.returned_reach) {
             this.reset_targets()
             this.reward_txt.setText('Move your cursor toward one of the targets.')
           }
@@ -697,10 +711,16 @@ export default class MainScene extends Phaser.Scene {
 
         this.all_trial_data.push(this.trial_data)
 
+        console.log(`reward: ${this.reward}; success count: ${this.trial_success_count}`)
+
         // next trial, delay based on punishment
         this.time.delayedCall(punish_delay, () => {
           this.time.delayedCall(TRIAL_DELAY, () => {
-            this.next_trial()
+            if (this.points_count >= TASK_POINT_GOAL) {
+              this.state = states.END
+            } else {
+              this.next_trial()
+            }
           })
         })
       }
@@ -709,21 +729,6 @@ export default class MainScene extends Phaser.Scene {
       if (this.entering) {
         this.entering = false
         this.scene.start('EndScene', this.all_trial_data)
-        // fade out
-        // this.tweens.addCounter({
-        //   from: 255,
-        //   to: 0,
-        //   duration: 2000,
-        //   onUpdate: (t) => {
-        //     let v = Math.floor(t.getValue())
-        //     this.cameras.main.setAlpha(v / 255)
-        //   },
-        //   onComplete: () => {
-        //     // this.scene.start('QuestionScene', { question_number: 1, data: this.all_data })
-        //     this.scene.start('EndScene', this.all_data)
-        //   }
-        // })
-        
       }
       break
     }
@@ -739,22 +744,15 @@ export default class MainScene extends Phaser.Scene {
   }
 
   next_trial() {
-    // move to the next trial, and set the state depending on trial_type
-    // if (this.tmp_counter > this.total_len) {
-    //   this.progress.visible = false
-    // } else {
-    //   this.progress.text = `${this.tmp_counter} / ${this.total_len}`
-    // }
     if (this.instruct_mode === 1) {
       // console.log(this.trial_success_count)
-      if (this.trial_success_count >= 3) {
+      if (this.trial_success_count >= 4) {
         this.instruct_mode = 2
         this.state = states.INSTRUCT
         return
       }
       this.cur_trial_ix = (this.cur_trial_ix + 1) % this.practice_trials_1.length
       this.current_trial = this.practice_trials_1[this.cur_trial_ix]
-      // console.log(this.current_trial)
     } else {
       if (this.instruct_mode === 2) {
         this.instruct_mode = 0
@@ -769,26 +767,6 @@ export default class MainScene extends Phaser.Scene {
       
     }
 
-    
-    
-    // let cur_trial = this.current_trial
-    // let tt = ''
-    // if (cur_trial !== undefined) {
-    //   tt = cur_trial.trial_type
-    // }
-    // if (cur_trial === undefined || this.trials.length < 1 && tt.startsWith('break')) {
-    //   this.state = states.END
-    // } else if (tt.startsWith('instruct_') || tt.startsWith('break')) {
-    //   this.state = states.INSTRUCT
-    // } else if (
-    //   tt.startsWith('practice') ||
-    //   tt.startsWith('probe')
-    // ) {
-    //   this.state = states.PRETRIAL
-    // } else {
-    //   // undefine
-    //   console.error('Oh no, wrong next_trial.')
-    // }
     this.state = states.PRETRIAL
   }
 }
