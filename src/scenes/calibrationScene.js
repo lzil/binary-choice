@@ -165,6 +165,7 @@ export default class CalibrationScene extends Phaser.Scene {
           this.calibration_success_txt.setVisible(true)
           let med_time = this.calibrate()
           console.log(med_time)
+          this.game.user_config.med_time = med_time
           this.time.delayedCall(CALIBRATION_SUCCESS_DELAY, () => {
             this.scene.start('MainScene', med_time)
           })
