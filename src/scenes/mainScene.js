@@ -89,8 +89,8 @@ export default class MainScene extends Phaser.Scene {
     this.instructions_shown = false
 
     this.n_trials = 1000
-    this.probe_prob = 1/2
-    this.easy_prob = 1/12
+    this.probe_prob = 3/10
+    this.easy_prob = 1/10
     this.distance_mode = true
     this.difficulty = 8
 
@@ -145,6 +145,7 @@ export default class MainScene extends Phaser.Scene {
         this.arrow_back.setVisible(false)
         this.reset_targets()
         this.origin_obj.setVisible(false)
+        this.trial_success_count = 0
 
       })
 

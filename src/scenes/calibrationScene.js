@@ -44,6 +44,7 @@ export default class CalibrationScene extends Phaser.Scene {
     if (this.is_debug) {
       n_circles = 3
       let med_time = 600
+      this.user_config.med_time = med_time
       this.scene.start('MainScene', med_time)
     }
 
