@@ -24,29 +24,51 @@ library("grid")
 ```
 
 ```{r}
-theme_set(theme_classic())
+theme_set(theme_bw())
 ```
 
 # Load trajectories
 
 ```{r}
-data_path = "../../"
-file.name = "all_data.json"
+data_path = "../data/"
+file.name = "pilot_v1.json"
 df.tmp = read_json(file.path(data_path, file.name)) %>% 
   as.tbl_json %>% 
   gather_array("ix") %>%
-  gather_object("trial_data") %>% 
-  append_values_string("value")
+  gather_object("trial_data")
 
 df.trial_metadata = df.tmp %>% 
-  filter(!is.na(value)) %>% 
+  filter(trial_data == "config") %>% 
+  gather_object("labels")
+
   select(-document.id) %>% 
   as_tibble() %>% 
   rename(trial = ix) %>% 
   pivot_wider(names_from = "trial_data", values_from = "value")
 
 df.trial_pointerdata = df.tmp %>% 
-  group_by(ix) %>%
+  filter(trial_data == "data") %>% 
+  gather_array("trial_idx") %>% 
+  gather_object("info") %>% 
+  select(-trial_data, -document.id) %>% 
+  append_values_string("value") %>% 
+  group_by(trial_idx) %>% 
+  filter(any(value[info == "error"] == "0"),
+         any(value[info == "set"] == "main"),
+         any(value[info == "type"] == "probe")) %>% 
+  ungroup() %>%
+  as.tbl_json(json.column = "..JSON") %>% 
+  filter(info == "pointer_data") %>% 
+  gather_object("pointer_data") %>% 
+  gather_array("timestep") %>% 
+  append_values_number("value") %>% 
+  as_tibble() %>% 
+  select(-info) %>% 
+  pivot_wider(names_from = "pointer_data", values_from = "value") %>% 
+  filter(moving == 1)
+
+
+  group_by(ix)
   filter(any(value[trial_data == "error"] == 0),
          any(value[trial_data == "set"] == "main")) %>% 
   ungroup() %>%
@@ -68,5 +90,12 @@ ggplot(df.plot, aes(x = x, y = y, color = factor(ix))) +
 ```
 
 
+```{r}
+df.plot = df.trial_pointerdata %>% 
+  filter(ix == 11)
+ggplot(df.plot, aes(x = x, y = y, color = factor(trial_idx))) + 
+  scale_y_reverse() +
+  geom_point(alpha = .6, show.legend=F)
+```
 
 

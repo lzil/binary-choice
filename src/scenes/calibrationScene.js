@@ -184,7 +184,6 @@ export default class CalibrationScene extends Phaser.Scene {
     
   }
   update() {
-
   }
 
   // calibration atm simply involves taking the median of the times

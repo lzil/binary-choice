@@ -418,6 +418,7 @@ export default class MainScene extends Phaser.Scene {
       }
 
       // check if cursor inside start circle
+      console.log(this.input.activePointer.x-this.wd2, this.origin.x, this.input.activePointer.y-this.hd2, this.origin.y)
       let mouse_in_origin = this.origin.contains(
         this.input.activePointer.x - this.wd2,
         this.input.activePointer.y - this.hd2)

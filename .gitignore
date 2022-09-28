@@ -1,5 +1,6 @@
 playground/
 node_modules/
+analysis/data
 
 .DS_Store
 
