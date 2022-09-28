@@ -61,7 +61,7 @@ window.addEventListener('load', () => {
     is_prolific: url_params.get('PROLIFIC_PID') !== null,
     is_sona: url_params.get('SONA_ID') !== null,
     institution: 'yale',
-    description: 'binary choice v1',
+    description: 'binary choice v2',
     datetime: new Date(),
     already_visited: localStorage.getItem('binary-choice') !== null,
     width: game.config.width,
@@ -77,7 +77,7 @@ window.addEventListener('load', () => {
   }
   user_config.device = 'none'
   user_config.is_debug = true
-  user_config.is_debug = false
+  // user_config.is_debug = false
 
   console.log(user_config)
 

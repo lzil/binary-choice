@@ -1,18 +1,4 @@
-/*
-NB target distance is a constant in main
-center & target sizes are consts in main
-{
-    ask_questions: bool,
-    is_clamped: bool,
-    clamp_angle: float,
-    trial_type: str,
-    is_masked: bool, // mask duration is staircased
-}
-*/
 
-/*
-repeats (default 40?) is number of repeats per clamp type (left vs right)
-*/
 
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -33,27 +19,6 @@ const rewardsMap = {
   2: 10
 }
 
-function getRewards(values) {
-  let len = values.length;
-  let indices = new Array(len);
-  for (let i = 0; i < len; ++i) indices[i] = i;
-  indices.sort(function (a, b) { return values[a] < values[b] ? -1 : values[a] > values[b] ? 1 : 0; });
-  let rewards = new Array(len)
-  for (let i = 0; i < len; ++i) {
-    let val = indices[i]
-    rewards[val] = rewardsMap[i];
-  }
-  // console.log(values, rewards)
-  return rewards
-}
-
-function getUnbalancedRewards(values) {
-  let len = values.length
-  let rewards = new Array(len).fill(1)
-  rewards[argMax(values)] = 5
-  return rewards
-}
-
 function randint(min, max) {
   min = Math.ceil(min)
   max = Math.floor(max)
@@ -62,59 +27,39 @@ function randint(min, max) {
 
 export default function generateTrials(params, is_debug = false) {
   let trials = []
-  const n_trials = params['n_trials']
-  const n_targets = params['n_targets']
-  // const CLAMP_ANGLE = 15 // TODO: parameterize/pick something smarter?
-  // let probe_trial_types = [
-  //   { trial_type: 'probe', ask_questions: true, is_masked: true, is_clamped: true, clamp_angle: CLAMP_ANGLE },
-  //   { trial_type: 'probe', ask_questions: true, is_masked: true, is_clamped: true, clamp_angle: -CLAMP_ANGLE }
-  // ]
+  const n_trials = params.n_trials
 
-  let out = []
-
-  // out.push({ trial_type: 'instruct_probe' })
-  // do groups of 10 trials at a time. 5 each trial type, and control repeats (3 max?)
-  // let n_trials = repeats * probe_trial_types.length
-  // if (n_trials % 10 !== 0) {
-  //   console.error('Make sure repeats leads to something divisible by 10.')
-  //   console.error(`Repeats was ${repeats}, n_trials was ${n_trials}`)
-  // }
-
-  // generate 10 trials to use as prototype
-  // let proto = Array(5).fill(probe_trial_types).flat()
   for (let i = 0; i < n_trials; i++) {
     let trial = {ix: i}
     trial.type = 'normal'
-    trial.difficulty = params.difficulty
 
-    // decides whether trial is probe, normal, or easy
-    let trial_coin_toss = Math.random()
-    if (trial_coin_toss > 1 - params.easy_prob) {
-      trial.difficulty = 1
-      trial.type = 'easy'
-    }
-    if (trial_coin_toss < params.probe_prob) {
-      trial.type = 'probe'
-      // trial.difficulty = 0
-      let probe_value = Math.random()
-      trial.values = Array(n_targets).fill(0.25 + 0.5 * probe_value)
-      let reward_value = Math.round(probe_value * 2)
-      trial.rewards = Array(3).fill(rewardsMap[reward_value])
-      // trial.rewards = Array(n_targets).fill(1)
-      // trial.rewards[randint(0,n_targets-1)] = 5
+    // whether it's left middle or right
+    let values = []
+    let val = Math.random()
+    let correct_idx = 0
+    if (val < 1/3) {
+      values = [1,0,0]
+    } else if (val < 2/3) {
+      values = [0,1,0]
+      correct_idx = 1
     } else {
-      let values = []
-      for (let j = 0; j < n_targets; j++) {
-        values.push(Math.random())
-      }
-      if (params.difficulty === 0 && (Math.max(values) - Math.min(values) < 0.5)) {
-        // too hard, repeat and make another one
-        i--
-      }
-      trial.values = values
-      trial.rewards = getRewards(values)
-      // trial.rewards = getUnbalancedRewards(values)
+      values = [0,0,1]
+      correct_idx = 2
     }
+    // when does correct target appear
+    let appear_dist_ratio = randint(0,2)
+    appear_dist_ratio = .6 + .1 * appear_dist_ratio
+
+    // which set of targets
+    let target_set = 0
+    if (Math.random() < .5) {
+      target_set = 1
+    }
+    
+    trial.values = values
+    trial.appear_dist_ratio = appear_dist_ratio
+    trial.target_set = target_set
+    trial.correct_idx = correct_idx
     
     trials.push(trial)
   //   whl: while (true) {
