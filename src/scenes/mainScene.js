@@ -29,7 +29,7 @@ const PRACTICE_REACH_TIME_LIMIT = 2000
 const REACH_TIME_LIMIT = 1200
 const CURSOR_START_Y = 450
 
-const SPEED_LIMIT = 8
+const SPEED_LIMIT = 1
 
 const MED_TIME_MULTIPLIER = 2
 
@@ -505,7 +505,9 @@ export default class MainScene extends Phaser.Scene {
         // move origin cursor, and light circle
         let vec = new Phaser.Math.Vector2(pointerx - cursorx, pointery - cursory)
         let speed = vec.length() / (cur_time - this.prev_time)
-        speed = Math.min(speed, SPEED_LIMIT)
+        console.log(speed)
+        speed = Math.min(speed, SPEED_LIMIT) * (cur_time - this.prev_time)
+
         vec = vec.limit(speed)
 
         this.origin_obj.setPosition(cursorx + vec.x, cursory + vec.y)
