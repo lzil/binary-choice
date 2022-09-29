@@ -42,10 +42,10 @@ export default class CalibrationScene extends Phaser.Scene {
     this.is_debug = user_config.is_debug
     let n_circles = N_CIRCLES
     if (this.is_debug) {
-      n_circles = 3
-      let med_time = 600
-      this.game.user_config.med_time = med_time
-      this.scene.start('MainScene', med_time)
+      // n_circles = 3
+      // let med_time = 600
+      // this.game.user_config.med_time = med_time
+      // this.scene.start('MainScene', med_time)
     }
 
     // this.game.canvas.style.cursor = 'pointer';
@@ -111,11 +111,13 @@ export default class CalibrationScene extends Phaser.Scene {
       other.setVisible(false)
       trackpad.setVisible(false)
 
-      // make first white circle visible
-      this.circles[0].setVisible(true)
-      this.times.push(this.game.loop.now)
+      this.scene.start('MainScene')
 
-      this.instructions_txt.setText("Now, let's get you calibrated. Circles will appear in different locations;\nmove your mouse to them as quickly as you can.")
+      // make first white circle visible
+      // this.circles[0].setVisible(true)
+      // this.times.push(this.game.loop.now)
+
+      // this.instructions_txt.setText("Now, let's get you calibrated. Circles will appear in different locations;\nmove your mouse to them as quickly as you can.")
     }
 
     
