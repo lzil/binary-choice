@@ -58,7 +58,7 @@ export default class EndScene extends Phaser.Scene {
       if (user_config.is_debug) {
         let file = new Blob([JSON.stringify(all_data, undefined, 2)], {type: 'application/json'});
         saveAs(file, 'all_data.json');
-      } else if (!is_sona) {
+      } else if (!is_sona && is_prolific) {
         // is not sona
         // so possibly prolific
         // or if anything else, google redirect
@@ -66,7 +66,7 @@ export default class EndScene extends Phaser.Scene {
         Promise.all(postData(alldata)).then((values) => {
           window.location.href = mostly + '7FDAF617'
         })
-      } else {
+      } else if (is_sona) {
         // is sona
         // allow option to download the debrief
 
@@ -110,6 +110,9 @@ export default class EndScene extends Phaser.Scene {
               window.location.href = mostly
             })
           })
+      } else {
+        let file = new Blob([JSON.stringify(all_data, undefined, 2)], {type: 'application/json'});
+        saveAs(file, 'all_data.json');
       }
     }
 

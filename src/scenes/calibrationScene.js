@@ -73,7 +73,7 @@ export default class CalibrationScene extends Phaser.Scene {
     }
 
     this.instructions_txt = this.add.rexBBCodeText(-500, -380,
-      "[b]Welcome to the task![/b] Please click on the device you're\ncompleting this task with today.",
+      "[b]Welcome to the task![/b] This task will be much easier if you turn\nyour screen brightness up. Once you've done that, please click on\nthe device you're using today.",
       instructions_font_params)
 
     // secret finish button
