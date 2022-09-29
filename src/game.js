@@ -77,7 +77,7 @@ window.addEventListener('load', () => {
   }
   user_config.device = 'none'
   user_config.is_debug = true
-  user_config.is_debug = false
+  // user_config.is_debug = false
 
   console.log(user_config)
 

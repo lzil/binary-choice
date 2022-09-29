@@ -28,9 +28,9 @@ function argMax(array) {
 
 
 const rewardsMap = {
-  0: 1,
+  0: 4,
   1: 5,
-  2: 10
+  2: 6
 }
 
 function getRewards(values) {

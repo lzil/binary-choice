@@ -8,6 +8,7 @@ import generateTrials from '../utils/trialgen'
 const WHITE = 0xffffff
 const GREEN = 0x39ff14 // actually move to the target
 const RED = 0xff0000
+const BLACK = 0x000000
 const BRIGHTRED = Phaser.Display.Color.GetColor(175, 50, 50)
 const DARKGRAY = 0x444444
 const GRAY = Phaser.Display.Color.GetColor(100, 100, 100)
@@ -28,7 +29,7 @@ const PRACTICE_REACH_TIME_LIMIT = 1600
 const REACH_TIME_LIMIT = 800
 const CURSOR_START_Y = 450
 
-const MED_TIME_MULTIPLIER = 1.5
+const MED_TIME_MULTIPLIER = 2
 
 const TRIAL_DELAY = 1000
 const PRACTICE_TRIAL_PUNISH_DELAY = 200
@@ -105,8 +106,8 @@ export default class MainScene extends Phaser.Scene {
 
 
     // we need to replace REACH_TIME_LIMIT with some function of this
-    this.med_time = med_time
-    const REACH_TIME_LIMIT_CALIBRATED = this.med_time * MED_TIME_MULTIPLIER
+    // this.med_time = med_time
+    // const REACH_TIME_LIMIT_CALIBRATED = this.med_time * MED_TIME_MULTIPLIER
 
     // fancy "INSTRUCTIONS" title
     this.instructions_title_group = this.add.group()
@@ -155,60 +156,50 @@ export default class MainScene extends Phaser.Scene {
       align: 'left'
     }
 
-    // first page of instructions
-    if (this.distance_mode) {
-      // distance_mode instructions
-      this.instructions_group_1 = this.add.group()
-      this.instructions_group_1.add(this.add.text(-500, -350,
-        'In this game, score points by moving your mouse to circular targets.',
-        instructions_font_params).setVisible(false))
-      this.instructions_group_1.add(this.add.rectangle(-450, -260, 100, 10, WHITE).setVisible(false))
-      this.instructions_group_1.add(this.add.rexBBCodeText(-500, -210,
-        'Start a trial by moving your mouse to a [b]white[/b] circle at the\nbottom of the screen.',
-        instructions_font_params).setVisible(false))
-      this.instructions_group_1.add(this.add.rexBBCodeText(-500, -100,
-        'The [b]white[/b] circle will turn [b][color=#39ff14]green[/color][/b], and three [b][color=#FF3232]red-hued[/color][/b] targets will\nappear near the top of the screen. Each target has a point value\nthat changes every trial. Targets are worth 1, 5, or 10 points.',
-        instructions_font_params).setVisible(false))
-      this.instructions_group_1.add(this.add.rexBBCodeText(-500, 40,
-        'As you move your mouse closer to a target, it may get [b][color=#FF8888]brighter[/color][/b] or \n[b][color=#882222]duller[/color][/b] based on its value. Brighter targets usually have higher value.',
-        instructions_font_params).setVisible(false))
-      // this.instructions_group_1.add(this.add.rexBBCodeText(-500, 130,
-      //   '',
-      //   instructions_font_params).setVisible(false))
-      this.instructions_group_1.add(this.add.rectangle(-450, 160, 100, 10, WHITE).setVisible(false))
-      this.instructions_group_1.add(this.add.text(-500, 210,
-        'Move to a target to select it and take your time, but watch out -\nif you reach too far or take too long, you get no points.',
-        instructions_font_params).setVisible(false))
-      this.instructions_group_1.add(this.add.text(-500, 330,
-        'Let\'s start with some practice rounds.',
-        instructions_font_params).setVisible(false))
-    } else {
-      // color mode instructions
-      this.instructions_group_1 = this.add.group()
-      this.instructions_group_1.add(this.add.text(-500, -350,
-        'In this game, your goal is to collect as many points as possible.\n\nThe more points you collect, the greater your bonus.',
-        instructions_font_params).setVisible(false))
-      this.instructions_group_1.add(this.add.rectangle(-450, -200, 100, 10, WHITE).setVisible(false))
-      this.instructions_group_1.add(this.add.rexBBCodeText(-500, -160,
-        'Start a trial by moving your mouse to a [b]white[/b] circle at the\nbottom of the screen.',
-        instructions_font_params).setVisible(false))
-      this.instructions_group_1.add(this.add.rexBBCodeText(-500, -50,
-        'When the white circle turns [b][color=#39ff14]green[/color][/b], move your mouse upwards.',
-        instructions_font_params).setVisible(false))
-      this.instructions_group_1.add(this.add.rexBBCodeText(-500, 20,
-        'Three [b][color=#FF3232]red-hued[/color][/b] targets will appear near the top of the screen.\nEach target has a point value that changes every trial.',
-        instructions_font_params).setVisible(false))
-      this.instructions_group_1.add(this.add.rexBBCodeText(-500, 130,
-        'The [b][color=#FFAAAA]brighter[/color][/b] the red hue, the higher the point value.',
-        instructions_font_params).setVisible(false))
-      this.instructions_group_1.add(this.add.rectangle(-450, 210, 100, 10, WHITE).setVisible(false))
-      this.instructions_group_1.add(this.add.text(-500, 260,
-        'Move to a target to select it and take your time, but watch out -\nif you reach too far or take too long, you get no points.',
-        instructions_font_params).setVisible(false))
-      this.instructions_group_1.add(this.add.text(-500, 380,
-        'Let\'s start with some practice rounds.',
-        instructions_font_params).setVisible(false))
+
+    var graphics = this.add.graphics();
+    graphics.fillGradientStyle(0x555555, BLACK, BLACK, BLACK, 1, 0,0,0);
+    const n_triangle_pts = 30
+    const light_distance = 600
+    let unit_rad = 2 * Math.PI / n_triangle_pts
+    let x0 = 0
+    let y0 = 0
+    // this.light_circle = this.add.circle(x0, y0, light_distance - 10, WHITE, 0).setDepth(-1)
+    this.light_triangles = []
+    for (let i = 0; i < n_triangle_pts; i++) {
+      let rads = i * unit_rad
+      let x1 = x0 + light_distance * Math.cos(rads)
+      let y1 = y0 + light_distance * Math.sin(rads)
+      let x2 = x0 + light_distance * Math.cos(rads + unit_rad)
+      let y2 = y0 + light_distance * Math.sin(rads + unit_rad)
+      this.light_triangles.push(graphics.fillTriangle(x0, y0, x1, y1, x2, y2).setDepth(-2).setVisible(false))
     }
+
+    // distance_mode instructions
+    this.instructions_group_1 = this.add.group()
+    this.instructions_group_1.add(this.add.text(-500, -350,
+      'In this game, score points by moving your mouse to circular targets.',
+      instructions_font_params).setVisible(false))
+    this.instructions_group_1.add(this.add.rectangle(-450, -260, 100, 10, WHITE).setVisible(false))
+    this.instructions_group_1.add(this.add.rexBBCodeText(-500, -210,
+      'Start a trial by moving your mouse to a [b]white[/b] circle at the\nbottom of the screen.',
+      instructions_font_params).setVisible(false))
+    this.instructions_group_1.add(this.add.rexBBCodeText(-500, -100,
+      'The [b]white[/b] circle will turn [b][color=#39ff14]green[/color][/b], and three [b][color=#FF3232]red-hued[/color][/b] targets will\nappear near the top of the screen. Each target has a point value\nthat changes every trial. Targets are worth 1, 5, or 10 points.',
+      instructions_font_params).setVisible(false))
+    this.instructions_group_1.add(this.add.rexBBCodeText(-500, 40,
+      'As you move your mouse closer to a target, it may get [b][color=#FF8888]brighter[/color][/b] or \n[b][color=#882222]duller[/color][/b] based on its value. Brighter targets usually have higher value.',
+      instructions_font_params).setVisible(false))
+    // this.instructions_group_1.add(this.add.rexBBCodeText(-500, 130,
+    //   '',
+    //   instructions_font_params).setVisible(false))
+    this.instructions_group_1.add(this.add.rectangle(-450, 160, 100, 10, WHITE).setVisible(false))
+    this.instructions_group_1.add(this.add.text(-500, 210,
+      'Move to a target to select it and take your time, but watch out -\nif you reach too far or take too long, you get no points.',
+      instructions_font_params).setVisible(false))
+    this.instructions_group_1.add(this.add.text(-500, 330,
+      'Let\'s start with some practice rounds.',
+      instructions_font_params).setVisible(false))
 
     // instructions during practice rounds
     this.instructions_holdwhite = this.add.text(50, 430, '<<   Move your mouse here', instructions_font_params).setVisible(false)
@@ -218,9 +209,6 @@ export default class MainScene extends Phaser.Scene {
       fontSize: 30,
       align: 'center'
     }).setVisible(false).setOrigin(0.5, 0.5)
-
-
-    
 
     // practice round trials
     let trial_params_1 = {
@@ -283,7 +271,7 @@ export default class MainScene extends Phaser.Scene {
       let radians = Phaser.Math.DegToRad(deg)
       let x = TARGET_DISTANCE * Math.cos(radians)
       let y = TARGET_DISTANCE * Math.sin(radians)
-      let target_obj = this.add.circle(x, y + CURSOR_START_Y, TARGET_SIZE_RADIUS, BRIGHTRED).setStrokeStyle(8,WHITE).setVisible(false)
+      let target_obj = this.add.circle(x, y + CURSOR_START_Y, TARGET_SIZE_RADIUS, BRIGHTRED).setStrokeStyle(8,WHITE).setDepth(3).setVisible(false)
 
       this.target_objs.push(target_obj)
     }
@@ -319,12 +307,13 @@ export default class MainScene extends Phaser.Scene {
       this.target_objs[i].setFillStyle(BRIGHTRED).setStrokeStyle(0).setVisible(false)
     }
     this.origin_obj.setVisible(false)
+    this.light_triangles.forEach(t => t.setVisible(false))
+    this.origin_obj.setPosition(0, CURSOR_START_Y)
   }
 
   reset_screen() {
     this.reset_targets()
     this.reward_txt.setVisible(false)
-
   }
 
   show_instructions(mode, show_all=false) {
@@ -392,7 +381,7 @@ export default class MainScene extends Phaser.Scene {
         }
         this.instructions_shown = true
         // how long you have to be inside circle to start trial
-        this.hold_val = randint(50, 100)
+        this.hold_val = randint(300, 600)
         this.reset_targets()
         this.origin_obj.setVisible(true)
         this.reward_txt.setVisible(false)
@@ -418,23 +407,20 @@ export default class MainScene extends Phaser.Scene {
       }
 
       // check if cursor inside start circle
-      console.log(this.input.activePointer.x-this.wd2, this.origin.x, this.input.activePointer.y-this.hd2, this.origin.y)
+      // console.log(this.input.activePointer.x-this.wd2, this.origin.x, this.input.activePointer.y-this.hd2, this.origin.y)
       let mouse_in_origin = this.origin.contains(
         this.input.activePointer.x - this.wd2,
         this.input.activePointer.y - this.hd2)
       if (mouse_in_origin && !this.hold_waiting) {
-          this.hold_counter = 0;
-          this.hold_waiting = true;
+        this.hold_start_time = this.game.loop.now
+        this.hold_waiting = true;
       } else if (!mouse_in_origin && this.hold_waiting) {
-        this.hold_counter = 0;
         this.hold_waiting = false;
       }
 
       // wait for cursor inside start circle
       if (this.hold_waiting) {
-        this.hold_counter++
-        if (this.hold_counter > this.hold_val) {
-          this.hold_counter = 0;
+        if (this.game.loop.now - this.hold_start_time > this.hold_val) {
           this.hold_waiting = false;
           this.state = states.MOVING
         }
@@ -468,11 +454,12 @@ export default class MainScene extends Phaser.Scene {
         }
 
         // show targets from beginning
-        if (this.distance_mode) {
-          for (let j = 0; j < this.target_objs.length; j++) {
-            this.target_objs[j].setVisible(true)
-          }
-
+        for (let j = 0; j < this.target_objs.length; j++) {
+          // this.target_objs[j].setVisible(true)
+          let value_coef = 2 * (this.current_trial.values[j] - 0.5)
+          let red_shade = 200 + 50 * value_coef
+          let red_rgb_color = Phaser.Display.Color.GetColor(red_shade, 50, 50)
+          this.target_objs[j].setFillStyle(red_rgb_color).setAlpha(.1).setVisible(true)
         }
 
         // listeners for hitting a target
@@ -511,7 +498,6 @@ export default class MainScene extends Phaser.Scene {
       }
 
       // main loop, executed always
-
       let cur_time = this.game.loop.now
       let pointerx = this.input.activePointer.x - this.wd2
       let pointery = this.input.activePointer.y - this.hd2
@@ -543,22 +529,11 @@ export default class MainScene extends Phaser.Scene {
           this.trial_data['move_time'] = cur_trial_time
           console.log(cur_trial_time, 'move_time')
 
-          // in color mode, show targets once we're moving
-          if (!this.distance_mode) {
-            for (let j = 0; j < this.target_objs.length; j++) {
-              this.target_objs[j].setVisible(true)
-              // setting target colors
-              let value_coef = 2 * (this.current_trial.values[j] - 0.5)
-              let difficulty_factor = this.current_trial.difficulty || 1
-              let red_shade = 175 + 75 * value_coef / this.current_trial.difficulty
-              let red_rgb_color = Phaser.Display.Color.GetColor(red_shade, 50, 50)
-              this.target_objs[j].setFillStyle(red_rgb_color)
-            }
-            // on practice trials, show instructions
-            if (this.instruct_mode === 1) {
-              this.instructions_moveup.setVisible(false)
-            }
-          }
+          this.origin_obj.fillColor = WHITE
+          this.light_triangles.forEach(t => {
+            t.setVisible(true)
+          })
+
           if (this.instruct_mode === 1) {
             this.instructions_hitred.setVisible(true)
           }
@@ -569,12 +544,13 @@ export default class MainScene extends Phaser.Scene {
       if (this.moving) {
         let reaching_trial_time = cur_time - this.move_time
 
-        // check that cursor is going away
-        if (pdist < this.last_pdist - 5) {
-          this.trial_error = Err.returned_reach
-          this.state = states.POSTTRIAL
-        }
-        this.last_pdist = pdist
+        // move origin cursor, and light circle
+        this.origin_obj.setPosition(pointerx, pointery)
+        this.light_triangles.forEach(t => {
+          // console.log(t.x, t.y)
+          t.setPosition(pointerx, pointery)
+        })
+
 
         // are we past the reaching time limit?
         let time_lim = REACH_TIME_LIMIT
@@ -588,23 +564,28 @@ export default class MainScene extends Phaser.Scene {
         }
 
         // setting target colors in distance mode
-        if (this.distance_mode) {
-          for (let j = 0; j < this.target_objs.length; j++) {
-            let target = this.target_objs[j]
-            let tdist = Phaser.Math.Distance.Between(pointerx, pointery, target.x, target.y)
-            let difficulty_factor = this.current_trial.difficulty || 1
-            let tdist_coef = TARGET_DISTANCE / tdist / difficulty_factor / 2
-            let pdist_coef = ORIGIN_SIZE_RADIUS / pdist / 4
-            // console.log(difficulty_factor, tdist_coef, pdist_coef)
-            let dist_coef = Math.max(Math.min(1, tdist_coef - pdist_coef), 0)
-            let value_coef = 2 * (this.current_trial.values[j] - 0.5)
-            let red_shade = 175 + 75 * value_coef * dist_coef
-            let red_rgb_color = Phaser.Display.Color.GetColor(red_shade, 50, 50)
-            // console.log(j, this.current_trial.values[j], red_shade)
-            this.target_objs[j].setFillStyle(red_rgb_color)
-          }
+        for (let j = 0; j < this.target_objs.length; j++) {
+          let target = this.target_objs[j]
+          let tdist = Phaser.Math.Distance.Between(pointerx, pointery, target.x, target.y)
+          let difficulty_factor = this.current_trial.difficulty || 1
+          
+          // console.log(difficulty_factor, tdist_coef, pdist_coef)
+          // let dist_coef = Math.max(Math.min(1, tdist_coef - pdist_coef), 0)
+          // let value_coef = 2 * (this.current_trial.values[j] - 0.5)
+          // let red_shade = 175 + 75 * value_coef * dist_coef
+          // let red_rgb_color = Phaser.Display.Color.GetColor(red_shade, 50, 50, dist_coef)
+          // console.log(j, this.current_trial.values[j], red_shade)
+          // this.target_objs[j].setFillStyle(red_rgb_color)
+
+          let tdist_coef = Math.max(0, 1 - tdist / TARGET_DISTANCE)
+          // let pdist_coef = ORIGIN_SIZE_RADIUS / pdist / 4
+          // let dist_coef = Math.max(Math.min(1, tdist_coef - pdist_coef), 0)
+          // let value_coef = 2 * (this.current_trial.values[j] - 0.5)
+          // let red_shade = 175 + 75 * value_coef * dist_coef
+          // let red_rgb_color = Phaser.Display.Color.GetColor(red_shade, 50, 50, dist_coef)
+          // console.log(j, this.current_trial.values[j], red_shade)
+          this.target_objs[j].setAlpha(tdist_coef)
         }
-        
 
       } else {
         // if not moving yet
