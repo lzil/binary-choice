@@ -181,7 +181,7 @@ export default class MainScene extends Phaser.Scene {
       'Start a trial by moving your mouse to a [b]white[/b] circle at the\nbottom of the screen.',
       instructions_font_params).setVisible(false))
     this.instructions_group_1.add(this.add.rexBBCodeText(-500, -100,
-      'The [b]white[/b] circle will turn [b][color=#39ff14]green[/color][/b], and three targets will appear\nnear the top of the screen. The [b][color=#FFAA00]gold target[/color][/b] is worth 2 points,\nand the [b][color=#DD3232]red targets[/color][/b] are worth 1 point.',
+      'The [b]white[/b] circle will turn [b][color=#39ff14]green[/color][/b], and three targets will appear\nnear the top of the screen. The [b][color=#FFAA00]gold target[/color][/b] is worth 3 points,\nand the [b][color=#DD3232]red targets[/color][/b] are worth 1 point.',
       instructions_font_params).setVisible(false))
     this.instructions_group_1.add(this.add.rexBBCodeText(-500, 40,
       'Move the cursor to a target to select it, but watch out - if you reach\ntoo far or take too long, you get no points.',
@@ -622,13 +622,13 @@ export default class MainScene extends Phaser.Scene {
           let reward_txt;
           if (this.instruct_mode === 1) {
             if (this.reward === 1) {
-              reward_txt = "This target is worth 1 point!"
+              reward_txt = "This target is worth 1 point."
             } else {
               reward_txt = `This target is worth ${this.reward} points!`
             }
           } else  {
             if (this.reward === 1) {
-              reward_txt = "You received 1 point!"
+              reward_txt = "You received 1 point."
             } else {
               reward_txt = `You received ${this.reward} points!`
             }

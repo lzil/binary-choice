@@ -16,7 +16,7 @@ function argMax(array) {
 const rewardsMap = {
   0: 1,
   1: 1,
-  2: 2
+  2: 3
 }
 
 function getRewards(values) {
@@ -32,14 +32,6 @@ function getRewards(values) {
   // console.log(values, rewards)
   return rewards
 }
-
-function getUnbalancedRewards(values) {
-  let len = values.length
-  let rewards = new Array(len).fill(1)
-  rewards[argMax(values)] = 5
-  return rewards
-}
-
 function randint(min, max) {
   min = Math.ceil(min)
   max = Math.floor(max)
