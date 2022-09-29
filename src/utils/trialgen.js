@@ -67,9 +67,9 @@ export default function generateTrials(params, is_debug = false) {
       // trial.difficulty = 0
       let probe_value = Math.random()
       trial.values = Array(3).fill(0.25 + 0.5 * probe_value)
-      let reward_value = Math.round(probe_value * 2)
-      trial.rewards = Array(3).fill(rewardsMap[reward_value])
-      // trial.rewards = Array(n_targets).fill(1)
+      // let reward_value = Math.round(probe_value * 2)
+      // trial.rewards = Array(3).fill(rewardsMap[reward_value])
+      trial.rewards = Array(3).fill(1)
       // trial.rewards[randint(0,n_targets-1)] = 5
     } else {
       let values = []

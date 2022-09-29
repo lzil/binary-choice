@@ -15,6 +15,7 @@ const GRAY = Phaser.Display.Color.GetColor(100, 100, 100)
 const LIGHTGRAY = Phaser.Display.Color.GetColor(150, 150, 150)
 const CYAN = Phaser.Display.Color.GetColor(100, 150, 250)
 const SALMON = Phaser.Display.Color.GetColor(250, 100, 100)
+const ORANGE = 0xffa500
 
 const TARGET_SIZE_RADIUS = 75
 const ORIGIN_SIZE_RADIUS = 15
@@ -24,12 +25,12 @@ const TARGET_DISTANCE = 850 // *hopefully* they have 300px available?
 const TARGET_SHOW_DISTANCE = 800
 const TARGET_REF_ANGLE = 270 // degrees, and should be pointed straight up
 const TARGET_ANGLE = 50
-const MOVE_TIME_LIMIT = 800
+const MOVE_TIME_LIMIT = 900
 const PRACTICE_REACH_TIME_LIMIT = 2000
-const REACH_TIME_LIMIT = 1200
+const REACH_TIME_LIMIT = 800
 const CURSOR_START_Y = 450
 
-const SPEED_LIMIT = 1
+const SPEED_LIMIT = 1.5
 
 const MED_TIME_MULTIPLIER = 2
 
@@ -37,7 +38,7 @@ const TRIAL_DELAY = 1000
 const PRACTICE_TRIAL_PUNISH_DELAY = 200
 const TRIAL_PUNISH_DELAY = 1500
 
-const TASK_POINT_GOAL = 1000
+const TASK_POINT_GOAL = 300
 
 const states = Enum([
   'INSTRUCT', // show text instructions (based on stage of task)
@@ -86,7 +87,7 @@ export default class MainScene extends Phaser.Scene {
     this.trial_counter = 0
     this.instruct_mode = 1
     this.points_count = 0
-    this.selection_counts = Array(3).fill(1/3)
+    // this.selection_counts = Array(3).fill(1/3)
     this.instructions_shown = false
 
     this.n_trials = 1000
@@ -97,7 +98,7 @@ export default class MainScene extends Phaser.Scene {
 
     this.is_debug = user_config.is_debug
     if (this.is_debug) {
-      this.instruct_mode = 2
+      this.instruct_mode = 1
       this.n_trials = 50
       this.probe_prob = 0
       this.easy_prob = 0
@@ -155,7 +156,7 @@ export default class MainScene extends Phaser.Scene {
     var graphics = this.add.graphics();
     graphics.fillGradientStyle(0x999999, BLACK, BLACK, BLACK, 1, 0,0,0);
     const n_triangle_pts = 30
-    const light_distance = 800
+    const light_distance = 600
     let unit_rad = 2 * Math.PI / n_triangle_pts
     let x0 = 0
     let y0 = 0
@@ -180,16 +181,16 @@ export default class MainScene extends Phaser.Scene {
       'Start a trial by moving your mouse to a [b]white[/b] circle at the\nbottom of the screen.',
       instructions_font_params).setVisible(false))
     this.instructions_group_1.add(this.add.rexBBCodeText(-500, -100,
-      'The [b]white[/b] circle will turn [b][color=#39ff14]green[/color][/b], and three [b][color=#CC3232]red-hued[/color][/b] targets will\nappear near the top of the screen. The targets are worth 1 or 2 \npoints. [b][color=#FF7777]Brighter[/color][/b] targets are usually worth more.',
+      'The [b]white[/b] circle will turn [b][color=#39ff14]green[/color][/b], and three targets will appear\nnear the top of the screen. The [b][color=#FFAA00]gold target[/color][/b] is worth 2 points,\nand the [b][color=#DD3232]red targets[/color][/b] are worth 1 point.',
       instructions_font_params).setVisible(false))
     this.instructions_group_1.add(this.add.rexBBCodeText(-500, 40,
-      '[b]The catch[/b]: your vision is limited, and you will only be able to see\nclearly close to your cursor. Your cursor also has a maximum speed.',
-      instructions_font_params).setVisible(false))
-    this.instructions_group_1.add(this.add.rectangle(-450, 160, 100, 10, WHITE).setVisible(false))
-    this.instructions_group_1.add(this.add.text(-500, 210,
       'Move the cursor to a target to select it, but watch out - if you reach\ntoo far or take too long, you get no points.',
       instructions_font_params).setVisible(false))
-    this.instructions_group_1.add(this.add.text(-500, 330,
+    this.instructions_group_1.add(this.add.rectangle(-450, 150, 100, 10, WHITE).setVisible(false))
+    this.instructions_group_1.add(this.add.rexBBCodeText(-500, 190,
+      '[b]The catch[/b]: your vision is limited, and targets far from your\ncursor will be hard to see. The cursor will automatically follow\nyour mouse, but it has a maximum speed.',
+      instructions_font_params).setVisible(false))
+    this.instructions_group_1.add(this.add.rexBBCodeText(-500, 340,
       'Let\'s start with some practice rounds.',
       instructions_font_params).setVisible(false))
 
@@ -221,7 +222,7 @@ export default class MainScene extends Phaser.Scene {
       '[b]One more hint[/b]: the more you select a certain target relative\nto the others, the more likely that target will be worth [b]only 1\npoint[/b] in future trials.',
       instructions_font_params).setVisible(false))
     this.instructions_group_2.add(this.add.rexBBCodeText(-500, 30,
-      'The task will end once you reach [b][color=#39ff14]300[/color][/b] points.',
+      `The task will end once you reach [b][color=#39ff14]${TASK_POINT_GOAL}[/color][/b] points.`,
       instructions_font_params).setVisible(false))
     this.instructions_group_2.add(this.add.rexBBCodeText(-500, 150,
       '[b]Once you are ready, click the arrow to begin.[/b]',
@@ -257,7 +258,8 @@ export default class MainScene extends Phaser.Scene {
     }
 
     this.target_objs = []
-    for (const deg of degs) {
+    for (let i = 0; i < degs.length; i++) {
+      let deg = degs[i]
       let radians = Phaser.Math.DegToRad(deg)
       let x = TARGET_DISTANCE * Math.cos(radians)
       let y = TARGET_DISTANCE * Math.sin(radians)
@@ -444,7 +446,7 @@ export default class MainScene extends Phaser.Scene {
 
         // show targets from beginning
         for (let j = 0; j < this.target_objs.length; j++) {
-          let value_coef = 2 * (this.current_trial.values[j] - 0.5)
+          // let value_coef = 2 * (this.current_trial.values[j] - 0.5)
           let red_shade = 180
           let red_rgb_color = Phaser.Display.Color.GetColor(red_shade, 50, 50)
           this.target_objs[j].setFillStyle(red_rgb_color).setAlpha(0.2).setVisible(true)
@@ -467,9 +469,9 @@ export default class MainScene extends Phaser.Scene {
       this.pointer_data.cy.push(cursory)
       this.pointer_data.moving.push(this.moving)
 
-      // check if cursor is past target radius
+      // check if cursor is past target radius + radius of target
       let pdist = Phaser.Math.Distance.Between(cursorx, cursory, this.origin.x, this.origin.y)
-      if (pdist >= TARGET_DISTANCE) {
+      if (pdist >= TARGET_DISTANCE + TARGET_SIZE_RADIUS) {
         this.trial_error = Err.too_far
         this.reward = 0
         this.selection = -1
@@ -505,7 +507,6 @@ export default class MainScene extends Phaser.Scene {
         // move origin cursor, and light circle
         let vec = new Phaser.Math.Vector2(pointerx - cursorx, pointery - cursory)
         let speed = vec.length() / (cur_time - this.prev_time)
-        console.log(speed)
         speed = Math.min(speed, SPEED_LIMIT) * (cur_time - this.prev_time)
 
         vec = vec.limit(speed)
@@ -532,11 +533,20 @@ export default class MainScene extends Phaser.Scene {
           let target = this.target_objs[j]
           let tdist = Phaser.Math.Distance.Between(cursorx, cursory, target.x, target.y)
           let difficulty_factor = this.current_trial.difficulty || 1
-          let tdist_coef = Math.max(0.2, 1 - Math.pow(tdist / TARGET_DISTANCE, 1.5))
+          let tdist_coef = Math.max(0.2, 1 - Math.pow(tdist / TARGET_DISTANCE, 1))
           let pdist_coef = Math.min(1, pdist / ORIGIN_SIZE_RADIUS / 4)
-          let value_coef = 2 * (this.current_trial.values[j] - 0.5)
-          let red_shade = 180 + value_coef * pdist_coef * (8 - this.difficulty_factor) * 10
+          // let value_coef = 2 * (this.current_trial.values[j] - 0.5)
+
+          let value_coef = 1
+          // let red_shade = 180 + value_coef * pdist_coef * (8 - this.difficulty_factor) * 10
+          let red_shade = 220
           let red_rgb_color = Phaser.Display.Color.GetColor(red_shade, 50, 50)
+          if (this.current_trial.rewards[j] == 2) {
+            let odist_coef = Math.max(0, 1 - Math.pow(tdist / TARGET_DISTANCE, 1/2))
+            let green_shade = 50 + odist_coef * 90
+            red_rgb_color = Phaser.Display.Color.GetColor(red_shade, green_shade, 50)
+          }
+          
           this.target_objs[j].setFillStyle(red_rgb_color).setAlpha(tdist_coef)
         }
 
@@ -550,23 +560,23 @@ export default class MainScene extends Phaser.Scene {
             // if reward is 3, maybe make it not 3
             let reward = this.current_trial.rewards[i]
             this.reward = reward
-            if (this.instruct_mode == 0 && reward != 1) {
-              let selection_ratio = this.selection_counts[i] - 1/3
-              console.log('selection ratio:', selection_ratio)
-              if (selection_ratio > 0 && Math.random() < selection_ratio) {
-                if (reward == 2) {
-                  console.log('changing reward to 1')
-                  this.reward = 1
-                } else {
-                  // console.log('changing reward to 2')
-                  // this.reward = 2
-                }
-              }
-            }
-            if (this.instruct_mode == 0) {
-              this.selection_counts = this.selection_counts.map(x=>x*5/6)
-              this.selection_counts[i] += 1/6
-            }
+            // if (this.instruct_mode == 0 && reward != 1) {
+            //   let selection_ratio = this.selection_counts[i] - 1/3
+            //   console.log('selection ratio:', selection_ratio)
+            //   if (selection_ratio > 0 && Math.random() < selection_ratio) {
+            //     if (reward == 2) {
+            //       console.log('changing reward to 1')
+            //       this.reward = 1
+            //     } else {
+            //       // console.log('changing reward to 2')
+            //       // this.reward = 2
+            //     }
+            //   }
+            // }
+            // if (this.instruct_mode == 0) {
+            //   this.selection_counts = this.selection_counts.map(x=>x*5/6)
+            //   this.selection_counts[i] += 1/6
+            // }
             this.trial_success_count++
             this.trial_error = Err.none
             
