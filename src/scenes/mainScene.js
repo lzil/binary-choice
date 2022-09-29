@@ -541,7 +541,7 @@ export default class MainScene extends Phaser.Scene {
           // let red_shade = 180 + value_coef * pdist_coef * (8 - this.difficulty_factor) * 10
           let red_shade = 220
           let red_rgb_color = Phaser.Display.Color.GetColor(red_shade, 50, 50)
-          if (this.current_trial.rewards[j] == 2) {
+          if (this.current_trial.rewards[j] == 3) {
             let odist_coef = Math.max(0, 1 - Math.pow(tdist / TARGET_DISTANCE, 1/2))
             let green_shade = 50 + odist_coef * 90
             red_rgb_color = Phaser.Display.Color.GetColor(red_shade, green_shade, 50)
