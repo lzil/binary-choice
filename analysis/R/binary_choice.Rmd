@@ -31,7 +31,7 @@ theme_set(theme_bw())
 
 ```{r}
 data_path = "../data/"
-file.name = "pilot_v1.json"
+file.name = "pilot_v3.json"
 df.tmp = read_json(file.path(data_path, file.name)) %>% 
   as.tbl_json %>% 
   gather_array("ix") %>%
@@ -92,8 +92,8 @@ ggplot(df.plot, aes(x = x, y = y, color = factor(ix))) +
 
 ```{r}
 df.plot = df.trial_pointerdata %>% 
-  filter(ix == 11)
-ggplot(df.plot, aes(x = x, y = y, color = factor(trial_idx))) + 
+  filter(ix == 6)
+ggplot(df.plot, aes(x = cx, y = cy, color = factor(trial_idx))) + 
   scale_y_reverse() +
   geom_point(alpha = .6, show.legend=F)
 ```
