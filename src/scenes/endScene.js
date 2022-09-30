@@ -58,7 +58,7 @@ export default class EndScene extends Phaser.Scene {
       if (user_config.is_debug) {
         let file = new Blob([JSON.stringify(all_data, undefined, 2)], {type: 'application/json'});
         saveAs(file, 'all_data.json');
-      } else if (!is_sona && is_prolific) {
+      } else {
         // is not sona
         // so possibly prolific
         // or if anything else, google redirect
@@ -66,55 +66,7 @@ export default class EndScene extends Phaser.Scene {
         Promise.all(postData(alldata)).then((values) => {
           window.location.href = mostly + '7FDAF617'
         })
-      } else if (is_sona) {
-        // is sona
-        // allow option to download the debrief
-
-        //code not yet configured for sona
-        scene.add.
-          text(center, center - 100, 'Click here to download\nthe debriefing.', {
-            fontFamily: 'Verdana',
-            fontStyle: 'bold',
-            fontSize: 40,
-            color: '#dddddd',
-            stroke: '#444444',
-            strokeThickness: 4,
-            align: 'center'
-          }).
-          setOrigin(0.5, 0.5).
-          setInteractive().
-          on('pointerdown', () => {
-            let anchor = document.createElement('a')
-            anchor.href = './assets/actlab_debrief.pdf'
-            anchor.target = '_blank'
-            anchor.download = 'actlab_debrief.pdf'
-            anchor.click()
-          })
-
-        let credit_txt = scene.add.
-          text(center, center + 100, 'Click here to get SONA credit.\n(Will take a moment to redirect)', {
-            fontFamily: 'Verdana',
-            fontStyle: 'bold',
-            fontSize: 40,
-            color: '#00ff00',
-            stroke: '#444444',
-            strokeThickness: 4,
-            align: 'center'
-          }).
-          setOrigin(0.5, 0.5).
-          setInteractive().
-          once('pointerdown', () => {
-            credit_txt.text = 'Redirecting now...'
-            window.removeEventListener('beforeunload', onBeforeUnload)
-            Promise.all(postData(alldata)).then((values) => {
-              window.location.href = mostly
-            })
-          })
-      } else {
-        let file = new Blob([JSON.stringify(all_data, undefined, 2)], {type: 'application/json'});
-        saveAs(file, 'all_data.json');
       }
     }
-
   }
 }
