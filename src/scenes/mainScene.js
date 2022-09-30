@@ -216,7 +216,7 @@ export default class MainScene extends Phaser.Scene {
       '[b]Good job![/b]\n\nNow, the actual game will be more difficult. You will have\na time limit to move, so you won\'t be able to explore much.\nJust try your best!',
       instructions_font_params).setVisible(false))
     this.instructions_group_2.add(this.add.rexBBCodeText(-500, -60,
-      'In every trial, which target is [b][color=#FFAA00]gold[/color][/b] is completely random.',
+      'All three targets have the same chance of being [b][color=#FFAA00]gold[/color][/b].',
       instructions_font_params).setVisible(false))
     this.instructions_group_2.add(this.add.rexBBCodeText(-500, 40,
       `The task will end once you reach [b][color=#39ff14]${TASK_POINT_GOAL}[/color][/b] points.`,
