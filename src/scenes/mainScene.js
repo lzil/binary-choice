@@ -179,7 +179,7 @@ export default class MainScene extends Phaser.Scene {
       'Start a trial by moving your mouse to a [b]white[/b] circle at the\nbottom of the screen.',
       instructions_font_params).setVisible(false))
     this.instructions_group_1.add(this.add.rexBBCodeText(-500, -100,
-      'The [b]white[/b] circle will turn [b][color=#39ff14]green[/color][/b], and three targets will appear\nnear the top of the screen. The [b][color=#FFAA00]gold target[/color][/b] is worth 3 points,\nand the [b][color=#DD3232]red targets[/color][/b] are worth 1 point.',
+      'The [b]white[/b] circle will turn [b][color=#39ff14]green[/color][/b], and three targets will appear\nnear the top of the screen. The [b][color=#FFAA00]gold target is worth 3 points[/color][/b],\nand the [b][color=#DD3232]red targets are worth 1 point[/color][/b].',
       instructions_font_params).setVisible(false))
     this.instructions_group_1.add(this.add.rexBBCodeText(-500, 40,
       'Move the cursor to a target to select it. The cursor will\nautomatically follow your mouse, but it has a maximum speed.',
