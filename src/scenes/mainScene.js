@@ -26,8 +26,8 @@ const TARGET_SHOW_DISTANCE = 800
 const TARGET_REF_ANGLE = 270 // degrees, and should be pointed straight up
 const TARGET_ANGLE = 50
 const MOVE_TIME_LIMIT = 900
-const PRACTICE_REACH_TIME_LIMIT = 2000
-const REACH_TIME_LIMIT = 800
+const PRACTICE_REACH_TIME_LIMIT = 20000
+const REACH_TIME_LIMIT = 900
 const CURSOR_START_Y = 450
 
 const SPEED_LIMIT = 1.5
@@ -92,16 +92,14 @@ export default class MainScene extends Phaser.Scene {
 
     this.n_trials = 1000
     this.probe_prob = 3/10
-    this.easy_prob = 3/10
     this.distance_mode = true
     this.difficulty = 5
 
     this.is_debug = user_config.is_debug
     if (this.is_debug) {
-      this.instruct_mode = 1
+      this.instruct_mode = 2
       this.n_trials = 50
       this.probe_prob = 0
-      this.easy_prob = 0
       this.difficulty = 4
     }
 
@@ -184,11 +182,11 @@ export default class MainScene extends Phaser.Scene {
       'The [b]white[/b] circle will turn [b][color=#39ff14]green[/color][/b], and three targets will appear\nnear the top of the screen. The [b][color=#FFAA00]gold target[/color][/b] is worth 3 points,\nand the [b][color=#DD3232]red targets[/color][/b] are worth 1 point.',
       instructions_font_params).setVisible(false))
     this.instructions_group_1.add(this.add.rexBBCodeText(-500, 40,
-      'Move the cursor to a target to select it, but watch out - if you reach\ntoo far or take too long, you get no points.',
+      'Move the cursor to a target to select it. The cursor will\nautomatically follow your mouse, but it has a maximum speed.',
       instructions_font_params).setVisible(false))
-    this.instructions_group_1.add(this.add.rectangle(-450, 150, 100, 10, WHITE).setVisible(false))
-    this.instructions_group_1.add(this.add.rexBBCodeText(-500, 190,
-      '[b]The catch[/b]: your vision is limited, and targets far from your\ncursor will be hard to see. The cursor will automatically follow\nyour mouse, but it has a maximum speed.',
+    this.instructions_group_1.add(this.add.rectangle(-450, 160, 100, 10, WHITE).setVisible(false))
+    this.instructions_group_1.add(this.add.rexBBCodeText(-500, 210,
+      '[b]The catch[/b]: your vision is limited, and targets far from your\ncursor will be hard to see.',
       instructions_font_params).setVisible(false))
     this.instructions_group_1.add(this.add.rexBBCodeText(-500, 340,
       'Let\'s start with some practice rounds.',
@@ -208,23 +206,22 @@ export default class MainScene extends Phaser.Scene {
       n_trials: 10,
       difficulty: 0,
       probe_prob: 0,
-      easy_prob: 0,
     }
     this.practice_trials_1 = generateTrials(trial_params_1)
     
 
     // second page of instructions, before starting
     this.instructions_group_2 = this.add.group()
-    this.instructions_group_2.add(this.add.text(-500, -350,
-      'Good job!\n\nNow, the actual game will be more difficult. You will have\nless time to move, and the colors will look more similar.\nJust try your best!',
+    this.instructions_group_2.add(this.add.rexBBCodeText(-500, -300,
+      '[b]Good job![/b]\n\nNow, the actual game will be more difficult. You will have\na time limit to move, so you won\'t be able to explore much.\nJust try your best!',
       instructions_font_params).setVisible(false))
-    this.instructions_group_2.add(this.add.rexBBCodeText(-500, -120,
-      '[b]One more hint[/b]: the more you select a certain target relative\nto the others, the more likely that target will be worth [b]only 1\npoint[/b] in future trials.',
+    this.instructions_group_2.add(this.add.rexBBCodeText(-500, -60,
+      'In every trial, which target is [b][color=#FFAA00]gold[/color][/b] is completely random.',
       instructions_font_params).setVisible(false))
-    this.instructions_group_2.add(this.add.rexBBCodeText(-500, 30,
+    this.instructions_group_2.add(this.add.rexBBCodeText(-500, 40,
       `The task will end once you reach [b][color=#39ff14]${TASK_POINT_GOAL}[/color][/b] points.`,
       instructions_font_params).setVisible(false))
-    this.instructions_group_2.add(this.add.rexBBCodeText(-500, 150,
+    this.instructions_group_2.add(this.add.rexBBCodeText(-500, 170,
       '[b]Once you are ready, click the arrow to begin.[/b]',
       instructions_font_params).setVisible(false))
 
@@ -285,7 +282,6 @@ export default class MainScene extends Phaser.Scene {
       n_trials: this.n_trials,
       difficulty: this.difficulty,
       probe_prob: this.probe_prob,
-      easy_prob: this.easy_prob,
     }
     this.trials = generateTrials(trial_params)
 

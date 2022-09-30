@@ -48,12 +48,8 @@ export default function generateTrials(params, is_debug = false) {
     trial.type = 'normal'
     trial.difficulty = params.difficulty
 
-    // decides whether trial is probe, normal, or easy
+    // decides whether trial is probe, normal
     let trial_coin_toss = Math.random()
-    if (trial_coin_toss > 1 - params.easy_prob) {
-      trial.difficulty = 1
-      trial.type = 'easy'
-    }
     if (trial_coin_toss < params.probe_prob) {
       trial.type = 'probe'
       // trial.difficulty = 0
